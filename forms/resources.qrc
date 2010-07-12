@@ -1,0 +1,34 @@
+<RCC>
+  <qresource prefix="/" >
+    <file>images/contour.png</file>
+    <file>images/addStreamline.png</file>
+    <file>images/previous.png</file>
+    <file>images/arc.png</file>
+    <file>images/bezier.png</file>
+    <file>images/coordinates.png</file>
+    <file>images/dataExtract.png</file>
+    <file>images/delete.png</file>
+    <file>images/divide.png</file>
+    <file>images/exit.png</file>
+    <file>images/function.png</file>
+    <file>images/line.png</file>
+    <file>images/minus10.png</file>
+    <file>images/modify.png</file>
+    <file>images/new.png</file>
+    <file>images/open.png</file>
+    <file>images/pan.png</file>
+    <file>images/plus10.png</file>
+    <file>images/probe.png</file>
+    <file>images/redraw.png</file>
+    <file>images/save.png</file>
+    <file>images/select.png</file>
+    <file>images/showAll.png</file>
+    <file>images/wind16.png</file>
+    <file>images/wind192.png</file>
+    <file>images/wind24.png</file>
+    <file>images/wind48.png</file>
+    <file>images/zoom.png</file>
+    <file>images/zoomMinus.png</file>
+    <file>images/zoomPlus.png</file>
+  </qresource>
+</RCC>
