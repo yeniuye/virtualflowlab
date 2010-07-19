@@ -1,5 +1,3 @@
-// This is the implementation file block.cpp
-
 #include <vector> 
 #include "guiBlock.h"
 #include "guiFace.h"
@@ -35,7 +33,7 @@ Block::~Block()
    delete[] coordinates;
    delete[] controlPoints;
    delete[] isCellBlocked;
-   faces = NULL;		       // Cuneyt: Are these necessary ?
+   faces = NULL;		       // Cuneyt: Are these NULLs necessary ?
    coordinates = NULL;
    controlPoints = NULL;
    isCellBlocked = NULL;
@@ -107,7 +105,7 @@ int Block::findCellAtXY(float x, float y, int &iCell, int &jCell, float** &corne
 {
    int i, j, cell, c1, c2, c3, c4;
    int nX, nY;
-	
+   
    nX = nXpoints;
    nY = nYpoints;
 
@@ -127,7 +125,8 @@ int Block::findCellAtXY(float x, float y, int &iCell, int &jCell, float** &corne
          cornerCoor[3][0] = coordinates[2*c4];
          cornerCoor[3][1] = coordinates[2*c4+1];
 
-         if (x >= cornerCoor[0][0] && x <= cornerCoor[1][0] && y >= cornerCoor[0][1] && y<= cornerCoor[2][1]) { // cuneyt: Burada hucreler Kartezyen kabul edildi. Degil ise daha karisik hesaplar gerekli
+         // Cuneyt: Here all the cells are assumed to be Cartesian. More complicated calculations are necessary if this is not the case.
+         if (x >= cornerCoor[0][0] && x <= cornerCoor[1][0] && y >= cornerCoor[0][1] && y<= cornerCoor[2][1]) {
             cell = j * (nX-1) + i;  // Coordinates (x,y) is in this cell
             iCell = i;
             jCell = j;
@@ -147,7 +146,7 @@ int Block::isXYinNeighbors(float x, float y, int &iCell, int &jCell, float** &co
 {
    int i, j, cell, c1, c2, c3, c4, n;
    int nX, nY;
-	
+   
    nX = nXpoints;
    nY = nYpoints;
 
@@ -172,7 +171,8 @@ int Block::isXYinNeighbors(float x, float y, int &iCell, int &jCell, float** &co
       cornerCoor[3][0] = coordinates[2*c4];
       cornerCoor[3][1] = coordinates[2*c4+1];
       
-      if (x >= cornerCoor[0][0] && x <= cornerCoor[1][0] && y >= cornerCoor[0][1] && y<= cornerCoor[2][1]) { // cuneyt: Burada hucreler Kartezyen kabul edildi. Degil ise daha karisik hesaplar gerekli
+      // Cuneyt: Here all the cells are assumed to be Cartesian. More complicated calculations are necessary if this is not the case.
+      if (x >= cornerCoor[0][0] && x <= cornerCoor[1][0] && y >= cornerCoor[0][1] && y<= cornerCoor[2][1]) {
          cell = neighborCells[n];  // Coordinates (x,y) is in this cell
          iCell = i;
          jCell = j;

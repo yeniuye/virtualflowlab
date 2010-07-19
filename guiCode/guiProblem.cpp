@@ -1,5 +1,3 @@
-// This is the implementation file problem.cpp.
-
 #include "guiProblem.h"
 #include "guiTypedefs.h"
 
@@ -13,7 +11,7 @@ Problem::Problem(void)
    drawingWhat = NOPRIMITIVE;
    glMouseState = SELECTION;
    visualizeState = SELECT;
-//   state.whatsDone = NOTHING;
+   //state.whatsDone = NOTHING;
 
    meshGenerationAlgorithm = 0;
 
@@ -21,12 +19,6 @@ Problem::Problem(void)
    dir = "";
    cfdFileName = "";
    resultFileName = "";
-
-   //corFileName = name  +  "_cor.txt" ;  // Bu 3'u kaldirilabilir.
-   //bicFileName = name  +  "_bic.txt" ;
-   //parFileName = name  +  "_par.txt" ;
-   //outFileName = name  +  "_out.txt" ;
-   //tecFileName = name  +  "_tec.txt" ;
 
    ICstring[0] = "";     // No IC is set yet for u-velocity
    ICstring[1] = "";     // No IC is set yet for v-velocity
@@ -38,9 +30,8 @@ Problem::Problem(void)
    isRestart       = FALSE;  // Default behavior is NOT to restart
    isTecplot       = TRUE;   // Default behavior is NOT to create Tecplot outputs.
    isTimeDependent = FALSE;  // Default behavior is steady flow.
-   //nParameters = 17;       // cuneyt: Should this be here? Do not forget to update this number as new parameters are added.
+   //nParameters = 17;       // Cuneyt: Should this be here? It should be updated each time a new parameter is added.
 
-   // meshType = STRUCTURED;		// cuneyt: Bunu da kullanicinin secebilmesi gerek.
    mesh = new StructuredMesh;
 
    needToSave = true;        // Set to true if a change is made to the problem. Currently it always stays as true.
@@ -60,20 +51,20 @@ Problem::Problem(void)
    probeType      = 2;       // Probe at index.
    probeResultX   = probeResultY = probeResultU = probeResultV = probeResultP = 0.0;
    nStreamlines   = 0;
-} // End of function Problem::Problem()
+} // End of function Problem()
 
 
 
 
 Problem::~Problem(void)
 {
-   int i, j;
-
+   // Cuneyt: What else should be deleted here ?
+   
    delete mesh;
 
    // Delete streamline coordinates
-   for(i=0; i<nStreamlines; i++) {
-       for(j=0; j<streamlines[i].nPoints; j++) {
+   for(int i=0; i<nStreamlines; i++) {
+       for(int j=0; j<streamlines[i].nPoints; j++) {
           delete[] streamlines[i].coor[j];
        }
        delete[] streamlines[i].coor;
@@ -86,5 +77,4 @@ Problem::~Problem(void)
 void Problem::setFileNames(string s1, string s2) {
    cfdFileName     = s1 + "/" + s2 + ".cfd";
    inputFileName   = s1 + "/" + s2 + ".inp";
-   defaultFileName = s1 + "/" + "DEFAULT.txt";
 }

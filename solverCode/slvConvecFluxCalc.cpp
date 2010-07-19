@@ -1,44 +1,31 @@
-
-/***************************************************************/
-/*                 CONVECTIVE FLUX CALCULATOR                  */
-/***************************************************************/
-
 #include "slvFunctions.h"
 
-/*****************************************************************************/
-/* "ConvFluxCalcUmom" function calculates the mass flux in cell faces of the */
-/* U-momentum cells. It calculates the mass flux for both the X-faces        */
-/* [J][I] (west and east) and Y-faces [j][i] (south and north).              */
-/* Two arrays are created one for the mass flux in x direction and one for   */
-/* the y direction.                                                          */
-/*****************************************************************************/
-void ConvFluxCalcUmom(double** &UmomXConvFlux,double** &UmomYConvFlux,
-double** UJivelocity,double** VjIvelocity,int Numi, int Numj, int NumI,
-int NumJ,double Ro)
+
+
+
+void ConvFluxCalcUmom(double** &UmomXConvFlux, double** &UmomYConvFlux)
 {
-   /*****************************************************************************/
-   /* Memory is allocaded for the two arrays in the main by using a predefined  */
-   /* function. The type of the memory allocated is double by default           */
-   /* IMPORTANT : The array size allocated is bigger than the needed since the  */
-   /* mass flux is not calculated at all [J][I] and [j][i] nodes but to         */
-   /* make the code more readible we keep it as it is.                          */
-   /*****************************************************************************/
+   /*****************************************************************************
+    This function calculates mass fluxes at cell faces (x-faces [J][I] and
+    y-faces [j][i]) of the u-momentum cells. Calculated fluxes are stored
+    in two arrays, one for the x direction and one for the y direction.
 
+    IMPORTANT : The arrays storing convective fluxes are allocated larger
+    than the required size. Actually mass flux is not calculated at all [J][I]
+    and [j][i] faces but using larger arrays make the code more readable.
+   *****************************************************************************/
 
-   /* Mass Flux is calculated for the cell faces[J][I] in x-direction first */
-   //cout << "Convective Mass Flux for U momentum at faces in x-direction\n";
-   for(int J=1;J<NumJ-1;J++) {
-      for(int I=1;I<NumI-1;I++) {
-         UmomXConvFlux[J][I]=(0.5)*Ro*(UJivelocity[J][I-1]+UJivelocity[J][I]);
+   // Mass flux for cell faces [J][I] in x-direction
+   for(int J=1; J<NumJ-1; J++) {
+      for(int I=1; I<NumI-1; I++) {
+         UmomXConvFlux[J][I] = 0.5 * density * (UJi[J][I-1] + UJi[J][I]);
       }
    }
 
-   /* Mass Flux is calculated for the cell faces[j][i] in y-direction second */
-
-   //cout << "Convective Mass Flux for U momentum at faces in y-direction\n";
-   for(int j=0;j<Numj;j++) {
-		for(int i=1;i<Numi-1;i++) {
-         UmomYConvFlux[j][i]=(0.5)*Ro*(VjIvelocity[j][i]+VjIvelocity[j][i+1]);
+   // Mass flux for cell faces [j][i] in y-direction
+   for(int j=0; j<Numj; j++) {
+      for(int i=1; i<Numi-1; i++) {
+         UmomYConvFlux[j][i] = 0.5 * density * (VjI[j][i] + VjI[j][i+1]);
       }
    }
 
@@ -47,62 +34,57 @@ int NumJ,double Ro)
 
 
 
-/*****************************************************************************/
-/* "ConvFluxCalcVmom" function calculates the mass flux in cell faces of the */
-/* V-momentum cells. It calculates the mass flux for both the X-faces        */
-/* [j][i] (west and east) and Y-faces [J][I] (south and north).              */
-/* Two arrays are created one for the mass flux in x direction and one for   */
-/* the y direction.                                                          */
-/*****************************************************************************/
-
-void ConvFluxCalcVmom(double** &VmomXConvFlux,double** &VmomYConvFlux,
-double** UJivelocity,double** VjIvelocity,int Numi, int Numj, int NumI,
-int NumJ,double Ro)
+void ConvFluxCalcVmom(double** &VmomXConvFlux, double** &VmomYConvFlux)
 {
-   /* Memory allocation policy is same as the ConvFluxCalcUmom function */
+   /*****************************************************************************
+    This function calculates mass fluxes at cell faces (x-faces [j][i] and
+    y-faces [J][I]) of the v-momentum cells. Calculated fluxes are stored
+    in two arrays, one for the x direction and one for the y direction.
 
-   /* Mass Flux is calculated for the cell faces[j][i] in x-direction first */
+    Same memory allocation warning applies as the previous function.
+   *****************************************************************************/
 
-   for(int j=1;j<Numj-1;j++) {
-      for(int i=0;i<Numi;i++) {
-         VmomXConvFlux[j][i]=(0.5)*Ro*(UJivelocity[j][i]+UJivelocity[j+1][i]);
+
+   // Mass flux for cell faces [j][i] in x-direction
+   for(int j=1; j<Numj-1; j++) {
+      for(int i=0; i<Numi; i++) {
+         VmomXConvFlux[j][i] = 0.5 * density * (UJi[j][i] + UJi[j+1][i]);
       }
    }
 
-   /* Mass Flux is calculated for the cell faces[J][I] in y-direction second */
-
-   for(int J=1;J<NumJ-1;J++) {
-      for(int I=1;I<NumI-1;I++) {
-         VmomYConvFlux[J][I]=(0.5)*Ro*(VjIvelocity[J][I]+VjIvelocity[J-1][I]);
+   // Mass flux for cell faces [J][I] in y-direction
+   for(int J=1; J<NumJ-1; J++) {
+      for(int I=1; I<NumI-1; I++) {
+         VmomYConvFlux[J][I] = 0.5 * density * (VjI[J][I] + VjI[J-1][I]);
       }
    }
 
 }  // End of function ConvFluxCalcVmom()
 
 
-/****************************************************************************/
-/* This function calculates the convective fluxes for the scalar variables, */
-/* like temperature.Fortunatelly, staggered grid errangement enables us to  */
-/* calculate convective fluxes without making any interpolation.            */
-/* This function added 08.01.2007                                           */
-/****************************************************************************/
-void ConvFluxCalcScalar(double** &ScalarXConvFlux,double** &ScalarYConvFlux,
-double** UJivelocity,double** VjIvelocity,int Numi, int Numj, int NumI,
-int NumJ,double Ro)
+
+
+void ConvFluxCalcScalar(double** &ScalarXConvFlux, double** &ScalarYConvFlux)
 {
-   /* Mass Flux is calculated for the cell faces[J][i] in x-direction first */
-   for(int J=1;J<NumJ-1;J++) {
-      for(int i=0;i<Numi;i++) {
-         ScalarXConvFlux[J][i]=Ro*UJivelocity[J][i];
+   /****************************************************************************
+    This function calculates convective fluxes for the scalar variable.
+    Fortunatelly, staggered grid errangement enables us to do this calculation
+    without making any interpolation.
+    
+    This function is added at 08 Jan 2007.
+   ****************************************************************************/
+
+   // Mass flux for cell faces [J][i] in x-direction
+   for(int J=1; J<NumJ-1; J++) {
+      for(int i=0; i<Numi; i++) {
+         ScalarXConvFlux[J][i] = density * UJi[J][i];
       }
    }
 
-   /* Mass Flux is calculated for the cell faces[j][I] in y-direction second */
-   for(int j=0;j<Numj;j++) {
-      for(int I=1;I<NumI-1;I++) {
-         ScalarYConvFlux[j][I]=Ro*VjIvelocity[j][I];
+   // Mass flux for cell faces [j][I] in y-direction
+   for(int j=0; j<Numj; j++) {
+      for(int I=1; I<NumI-1; I++) {
+         ScalarYConvFlux[j][I] = density * VjI[j][I];
       }
    }
 }  // End of function ConvFluxCalcScalar()
-
-

@@ -1,60 +1,38 @@
-/*****************************************************************************/
-/*                          LINE BY LINE TDMA METHOD                         */
-/*****************************************************************************/
-
-/*****************************************************************************/
-/* References:                                                               */
-/* (1)  "Numerical heat transfer and fluid flow", PATANKAR                   */
-/* (2)  "An Introduction to computational fluid dynamics. The finite volume  */
-/* method",H.K.VERSTEEG and W.MALALASEKERE                                   */
-/* (3)  "Computational fluid dynamics volume 1", KLAUS A.HOFFMANN, STEVE T.  */
-/* CHIANG                                                                    */
-/*****************************************************************************/
-
 #include "slvFunctions.h" 
 
-/*****************************************************************************/
-/* LINE BY LINE TDMA method is used in 2D or 3D case. In this code it is     */
-/* designed for 2D case. The idea of the method is described in the          */
-/* references given below but simply. Distribution of a variable is          */
-/* determined (e.g. Temperature) in a plane. This is done by using TDMA on   */
-/* on lines and sweep it through the other perpendicular line. In the        */
-/* following code the TDMA and the sweep directions can be determined by the */
-/* user(from west to east or from south to north)                            */
-/*                                                                           */
-/* The Function needs 7 arrays. 4 of them are the neigbouring cells and      */
-/* 1 of them is the center cells. One of the remaining two arrays is the     */
-/* source array, which also serves to impliment the boundary conditions.And  */
-/* the last array keeps the variable of interest (e.g. U velocities).        */
-/* The function has four integer parameters the number of cells in x and y   */
-/* direction are the two of them. "IterationNum" determines the number of    */
-/* sweep loops that is to be performed. And the last integer parameter       */
-/* TypeSweep determines the direction of sweep.                              */
-/*                                                                           */
-/* NOTE: The "TemperatureArray" is the array that keeps the variable of      */
-/* interest although it is name is the TemperatureArray it may keep the      */
-/* U & V velocities or Pressure values. It depends on what kind of matrix    */
-/* does the LineTDMA solves currently.                                       */
-/*                                                                           */
-/* IMPORTANT POINTS :                                                        */
-/* (1) To use the LineTDMASolver the size of the domain should be increased  */
-/* by 2 in both directions. One Column of zeros before the first column and  */
-/* one more column of zeros after the last column. Similarly for rows. The   */
-/* aim of these zero columns and rows is to tread the boundary nodes same    */
-/* as the internal nodes. Not only the variable array (TemperatureArray) but */
-/* also the remaining arrays are increased in size although they are NEVER   */
-/* used but it is sure increase the readibility of the code.                 */
-/*****************************************************************************/
+
+
 
 void LineTDMASolver(double** NorthArray,double** SouthArray,double** WestArray,
-double** EastArray,double** CenterArray,double** SourceArray,int NumXcell,
-int NumYcell,double** TemperatureArray,int IterationNum,int TypeSweep)
+double** EastArray,double** CenterArray,double** SourceArray,int Num1,int Num2,
+double** UnknownArray,int nSweep,int sweepDir)
 {
-   /*****************************************************************************/
-   /* Memory is allocated for the 4 arrays that are to be sent to TDMA function */
-   /* Tarray is defined for temporary use. It is used to take the outputs of    */
-   /* TDMA function and fill a matrix from these arrays.                        */
-   /*****************************************************************************/
+   /*****************************************************************************
+    References:
+    (1) "Numerical Heat Transfer and Fluid Flow", S.V. Patankar
+    (2) "An Introduction to Computational Fluid Dynamics. The Finite Volume Method",
+        H.K. Versteeg and W. Malalasekera
+    (3) "Computational Fluid Dynamics Vol. 1", K.A. Hoffmann, S.T. Chiang
+
+    In line-by-line TDMA method, distribution of an unknown is determined in a
+    2D plane by first applying TDMA on lines aligned with one coordinate direction
+    and sweeping the solution in the other direction. In the following code
+    initial TDMA and sweep directions can be determined by the user (from West to
+    East or from South to North)
+
+    This function needs 7 arrays. 4 of them are for neigbouring cells and 1 is for
+    center cell. One array is the source array, which is also used to impliment
+    boundary conditions. The last array keeps the unknowns, e.g. u velocities.
+    Num1 and Num2 are the number of unknowns in x and y directions. nSweep
+    determines the number of sweep loops and sweepDir determines the direction of
+    sweep.
+
+    IMPORTANT: To use LineTDMASolver the size of the domain should be increased
+    by 2 in both directions. One column of zeros before the first column and
+    one more column of zeros after the last column are added. Similarly size
+    increase applies for rows too. By adding these columns and rows it is possible
+    to treat boundary nodes same as internal nodes.
+   *****************************************************************************/
 
    double* Aarray;
    double* Barray;
@@ -62,144 +40,133 @@ int NumYcell,double** TemperatureArray,int IterationNum,int TypeSweep)
    double* Darray;
    double* Tarray;
 
-   if (TypeSweep == 1) {
-      Aarray = new double[NumYcell-2];
- 	   Barray = new double[NumYcell-2];
- 	   Carray = new double[NumYcell-2];
- 	   Darray = new double[NumYcell-2];
- 	   Tarray = new double[NumYcell-2];
-   } else if (TypeSweep == 2) {
- 	   Aarray = new double[NumXcell-2];
- 	   Barray = new double[NumXcell-2];
- 	   Carray = new double[NumXcell-2];
- 	   Darray = new double[NumXcell-2];
- 	   Tarray = new double[NumXcell-2];
+   /*****************************************************************************
+    Memory is allocated for the 4 arrays that are to be sent to TDMA function.
+    Tarray is a temporary array. It is used to store the output of TDMA function.
+   *****************************************************************************/
+
+   if (sweepDir == 1) {
+      Aarray = new double[Num2 - 2];
+ 	   Barray = new double[Num2 - 2];
+ 	   Carray = new double[Num2 - 2];
+ 	   Darray = new double[Num2 - 2];
+ 	   Tarray = new double[Num2 - 2];
    } else {
-      cout << "Error in LineTDMASolver() function\n";
+ 	   Aarray = new double[Num1 - 2];
+ 	   Barray = new double[Num1 - 2];
+ 	   Carray = new double[Num1 - 2];
+ 	   Darray = new double[Num1 - 2];
+ 	   Tarray = new double[Num1 - 2];
    }
 
-   /*****************************************************************************/
-   /* The most outer "for loop" is to determine the # of sweeps that are to be  */
-   /* performed. The most inner loop[2] is used to fill the 4 arrays that are   */
-   /* proper for the use of TDMA function. The other inner loop [3] is for      */
-   /* check purpose it can be comment out. The [4] inner loop is used to form   */
-   /* a matrix from the outputs of succesive TDMASolver calls.                  */
-   /*****************************************************************************/
+   /*****************************************************************************
+    Outmost loop is for sweeping. Loop [2] is used to fill the 4 arrays that are
+    going to be send to TDMASolver function. Loop [3] is used to transfer the
+    output of succesive TDMASolver calls to UnknownArray.
+   *****************************************************************************/
    
-   if (TypeSweep == 1) {
-      for (int iteration=0; iteration<IterationNum; iteration++){
-         for(int k=1; k<NumXcell-1; k++) {             // COLUMNN             [1]
-            for(int i=0; i<NumYcell-2; i++) {          // ROW                 [2]
+   if (sweepDir == 1) {
+      for (int s=0; s<nSweep; s++){                // Sweep loop
+         for(int k=1; k<Num1-1; k++) {             // COLUMNN             [1]
+            for(int i=0; i<Num2-2; i++) {          // ROW                 [2]
                Aarray[i] = CenterArray[i+1][k];
                Carray[i] = SouthArray[i+1][k];
                Barray[i] = NorthArray[i+1][k];
-               Darray[i] = WestArray[i+1][k] * TemperatureArray[i+1][k-1] +
-                           EastArray[i+1][k] * TemperatureArray[i+1][k+1] + SourceArray[i+1][k];
+               Darray[i] = WestArray[i+1][k] * UnknownArray[i+1][k-1] +
+                           EastArray[i+1][k] * UnknownArray[i+1][k+1] +
+                           SourceArray[i+1][k];
             }
 
-            TDMASolver(Carray, Aarray, Barray, Darray, Tarray, NumYcell-2);
+            TDMASolver(Carray, Aarray, Barray, Darray, Tarray, Num2-2);
 
-            for(int i=0; i<NumYcell-2; i++)           //                      [4]
-                TemperatureArray[i+1][k] = Tarray[i];
+            for(int i=0; i<Num2-2; i++)           //                      [3]
+                UnknownArray[i+1][k] = Tarray[i];
          }
       }
-   } else if (TypeSweep == 2) {
-   	for (int iteration=0; iteration<IterationNum; iteration++) {
-         for(int j=1; j<NumYcell-1; j++) {            // ROW                  [1]
-            for(int I=0; I<NumXcell-2; I++) {         // COLUMN               [2]
+   } else {
+   	for (int s=0; s<nSweep; s++) {              // Sweep loop
+         for(int j=1; j<Num2-1; j++) {            // ROW                  [1]
+            for(int I=0; I<Num1-2; I++) {         // COLUMN               [2]
                Aarray[I] = CenterArray[j][I+1];
                Carray[I] = WestArray[j][I+1];
                Barray[I] = EastArray[j][I+1];
-               Darray[I] = SouthArray[j][I+1] * TemperatureArray[j-1][I+1] +
-                           NorthArray[j][I+1] * TemperatureArray[j+1][I+1] + SourceArray[j][I+1];
+               Darray[I] = SouthArray[j][I+1] * UnknownArray[j-1][I+1] +
+                           NorthArray[j][I+1] * UnknownArray[j+1][I+1] +
+                           SourceArray[j][I+1];
             }
 
-            TDMASolver(Carray, Aarray, Barray, Darray, Tarray, NumXcell-2);
+            TDMASolver(Carray, Aarray, Barray, Darray, Tarray, Num1-2);
 
-            for(int I=0; I<NumXcell-2; I++)           //                      [4]
-               TemperatureArray[j][I+1] = Tarray[I];
+            for(int I=0; I<Num1-2; I++)           //                      [3]
+               UnknownArray[j][I+1] = Tarray[I];
          }
       }
    }
 
-   /* Memories that are used in the TDMA are deallocated */
    delete[] Aarray;
-   Aarray = NULL;
    delete[] Barray;
-   Barray = NULL;
    delete[] Carray;
-   Carray = NULL;
    delete[] Darray;
-   Darray = NULL;
    delete[] Tarray;
+   Aarray = NULL;
+   Barray = NULL;
+   Carray = NULL;
+   Darray = NULL;
    Tarray = NULL;
 
 }  // End of function LineTDMASolver()
 
 
-/*****************************************************************************/
-/* The TDMA fonction has 4 parameter arrays "Carray,Aarray,Barray,Darray"    */
-/* and an integer which carry the size of arrays.                            */
-/* TDMA takes the arrays according to the below mathematical model.          */
-/* A(@i) * T(@i) = B(@i) * T(@i+1) + C(@i) * T(@i-1) + D(@i)       (FORM-1)  */
-/* @ "at" used to denote subscripts e.g. T(@i+1) means subscript of T is i+1 */
-/* The general matrix form is a bit different than the mathematical model    */
-/* above.                                                                    */
-/* - C(@i) * T(@i-1) + A(@i) * T(@i) -  B(@i) * T(@i+1) = D(@i)    (FORM-2)  */
-/* Aarray = The diagonal array of the corresponding matrix                   */
-/* Barray =(-1)*Right neighbouring array of the diagonal array in the matrix */
-/* Carray =(-1)*Left neighbouring array of the diagonal array in the matrix  */
-/* Darray = Resulting array (Constant array)                                 */
-/* However we do not need to make any manipulations in the arrays since      */
-/* the LineTDMA sends the array according to the FORM-1.                     */
-/*****************************************************************************/
 
 
 void TDMASolver(double* Carray, double* Aarray, double* Barray, double* Darray, double* Tarray, int size)
 {
+   /*****************************************************************************
+    This function takes 4 array parameters Carray, Aarray, Barray, Darray,
+    and an integer to specify the size of these arrays. Tarray is used to store
+    the results.
 
-   /* The arrays that are to be used in the calculation process is created
-   dynamically, with the size paremeter of the TDMASolver function. */
+    TDMA takes the arrays according to the following structure
+    A(i) * T(i) = B(i) * T(i+1) + C(i) * T(i-1) + D(i)
+    
+    which is a different representation of the following
+    - C(i) * T(i-1) + A(i) * T(i) -  B(i) * T(i+1) = D(i)
 
+    Aarray = Diagonal array of the corresponding matrix
+    Barray = (-1) * Right neighbouring array of the diagonal array
+    Carray = (-1) * Left neighbouring array of the diagonal array
+    Darray = Right hand side array
+   *****************************************************************************/
+
+   // Create two temporary arrays and fill them in.
    double *Parray;
-   Parray = new double[size];
    double *Qarray;
+
+   Parray = new double[size];
    Qarray = new double[size];
    
-   /* Created arrays are initilized to zero */
    for(int i=0; i<size; i++) {
       Parray[i] = 0.0;
       Qarray[i] = 0.0;
    }
 
-   /*****************************************************************************/
-   /* First elements of the newly created arrays can be calculated easily since */
-   /* Carray[0] = 0 which makes the corresponding equation simpler              */
-   /* Parray[0] = Barray[0] / Aarray[0];                                        */
-   /* Qarray[0] = Darray[0] / Aarray[0];                                        */
-   /* However NO SPRECIAL treatment is needed. The same equation can also be    */
-   /* applied for these first elements of the arrays.                           */
-   /*****************************************************************************/
+   Parray[0] = Barray[0] / Aarray[0];  // Note that Carray[0] = 0
+   Qarray[0] = Darray[0] / Aarray[0];  // Note that Carray[0] = 0
 
-   Parray[0] = Barray[0] / Aarray[0];
-   Qarray[0] = Darray[0] / Aarray[0];
-
-   for(int i=1;i<size;i++) {
-      Parray[i]= Barray[i] / (Aarray[i] - Carray[i] * Parray[i-1]);
-      Qarray[i]=(Darray[i] + Carray[i] * Qarray[i-1]) / (Aarray[i] - Carray[i] * Parray[i-1]);
+   for(int i=1; i<size; i++) {
+      Parray[i] = Barray[i] / (Aarray[i] - Carray[i] * Parray[i-1]);
+      Qarray[i] = (Darray[i] + Carray[i] * Qarray[i-1]) / (Aarray[i] - Carray[i] * Parray[i-1]);
    }
 
    Tarray[size-1] = Qarray[size-1];
+
    for(int i=size-2; i>-1; i--) {
       Tarray[i] = Tarray[i+1] * Parray[i] + Qarray[i];
    }
 
-   /* The memory allocated for the arrays are deallocated here */
-
    delete[] Parray;
-   Parray = NULL;
    delete[] Qarray;
+   Parray = NULL;
    Qarray = NULL;
 
 }  // End of function TDMASolver()
-
