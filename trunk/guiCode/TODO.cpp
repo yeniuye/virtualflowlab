@@ -2,12 +2,24 @@
 
 TODO LIST (In Turkish)
 
-- Kod icindeki Turkce aciklamalari/uyarilari temizle.
+- Giris-cikis seklinde bir akis cozulurken cikista basinc sabitlenmedigi icin basincsurekli dusuyor Basinc ve kutle residual'lari
+  sabitleniyor, dusmuyor.
 
-- Problem isminde bosluk olunca calismiyor. Problem isimlerinde bosluk karakterine izin verilip verilmeyecegini dusun. Bosluk karakterli bir isim verilecekse boslugu
-  kullaniciya hic sormadan kadirmak mi gerek?
+- Visualization yapmak icin acilan DAT dosyasinin zaten acik olan DAT dosyasi ile ayni oldugunun kontrolu yapilmali. En basitinden dosya
+  isimlerine bakilabilir.
 
-- about.ui kullanima alinsin.
+- DAT dosyasinin (sonuc dosyasi) okunup okunmadigini gosteren bir degiskene ihtiyac var. isDATread gibi birsey.
+
+- DAT dosyalari isTecplot parametresi TRUE ise yaratiliyor. Ama bu DAT dosyalari VFL ile post processing yaparken de kullaniliyor.
+  O zaman bu degiskenin adi degismeli, createDAT gibi birsey olmali.
+
+- Yukaridakine bagli olarak DAT dosyalari zaten OUT dosyalarindaki tum bilgileri icermiyor mu? O zaman OUT'lar hic yaratilmasin
+  ve DAT'lar restart icin kullanilabilir olsun. Boyle olursa DAT'lar yaratilsin mi diye de sorulmaz ve hep yaratilir, is basitlesir.
+
+- Convergence ve control point grafikleri icin alinan screenshot'larda eksenler gorunmuyor.
+
+- Problem isminde bosluk olunca calismiyor. Problem isimlerinde bosluk karakterine izin verilip verilmeyecegini dusun. Bosluk
+  karakterli bir isim verilecekse boslugu kullaniciya hic sormadan kadirmak mi gerek?
 
 - isMeshGenerated degiskeninin kullanimi sorunlu. Bir kere TRUE olduktan sonra hic FALSE yapilmiyor.
 
@@ -16,8 +28,6 @@ TODO LIST (In Turkish)
 
 - Visualize sayfasindaki dugmelerin autoExclusive ozelligi tam calismiyor. Hicbiri secili hale gelebiliyor. Mesela geometry sayfasindakiler
   gibi degiller. Bu mainWindow::visualizeButtonsClicked() fonksiyonun sonundaki else {} ile halledildi.
-
-- OpenGl penceresinde Last View'e ulasabilmek icin bir tus konmali. Last View'in detaylarini tutacak degiskenler de yaratilmali.
 
 - Eleman sayisi cok olan aglarda pan yaparken atlamalar oluyor. Eleman sayisina bakarak belli bir degerden cok oldugunda, fareyi kac
   piksel oynattigimizda pan yapilacak bilgisini degistirebiliriz.
@@ -34,9 +44,7 @@ TODO LIST (In Turkish)
 - Kismen birbirinin ustunde olan nesneleri secerken alttakinin rengi degisiyor, ama ustundekinden dolayi bu degisiklik gorunmuyor.
   Birden fazla nesneyi secme imkani getirmek gerekebilir. Periodic, symmetric BC icin de gerekli bu.
 
-- delete ve deleteAll tuslarina basinca olup biteni bir toparlamak gerek, fazla daginik.
-
-- DAT dosyasinin (Sonuc dosyasi) okunup okunmadigini gosteren bir degiskene ihtiyac var. isDatRead gibi birsey.
+- delete ve deleteAll tuslarina basinca olup biteni toparlamak gerek, fazla daginik.
 
 - Initial Conditions bilgisi hicbir degiskende tutulmuyor. Textbox'tan okunup, textbox'a yaziliyor. Bu multiblock olunca calismaz.
 
@@ -50,7 +58,7 @@ TODO LIST (In Turkish)
   "Block/face setting'ler yapildi", veya "mesh yaratildi". Uzerinde dusunmek gerek.
 
 - Her solver parametresinin ontanimli degeri olmali mi? Mesela ilgili kutucuga time step girilmez ise, cfd ve inp dosyasi yaratilirken
-  yazilacak bir deger olmuyor. Cfd dosyasi okunurken ilgili kutucuk bosluk kaliyor, sorun olmuyor, ama inp dosyasi okunurken cozucu
+  yazilacak bir deger olmuyor. cfd dosyasi okunurken ilgili kutucuk bosluk kaliyor, sorun olmuyor, ama inp dosyasi okunurken cozucu
   sacma sapan bir time step degeri okuyor. ReadWriteCfdFile.cpp'de hic kutucuktan okuyup kutucuga yazdirma olmamali mi?
 
 - getBCstring() fonksiyonu pointer return etmek yerine iki parametre alsin ve tek bir string return etsin.
@@ -105,20 +113,19 @@ TODO LIST (In Turkish)
 
 - setupLineEditValidators()'in eksiklerini tamamla.
 
-- .CFD dosyasindaki MESH ve MESHPOINT kisimlari birlestirilebilir.
+- .cfd dosyasindaki MESH ve MESHPOINT kisimlari birlestirilebilir.
 
 
 
-NOTLAR
+NOTES
 
-- Hangi OS'da oldugumuzu anlamak icin
-  filter = "*"				// Unix ise  
-  #ifdef Q_OS_WIN32			// Windows ise
+- To determine which OS the code is running on
+
+  filter = "*"              // Unix  
+  #ifdef Q_OS_WIN32         // Windows
     filter = "*.exe"
-  #elseif Q_OS_MACX			// MAC ise
+  #elseif Q_OS_MACX         // MAC
     filter = "*.something"
   #endif 
 
-
 */
-

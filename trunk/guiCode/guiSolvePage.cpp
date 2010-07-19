@@ -7,7 +7,7 @@
 #include "guiControlPointPlot.h"
 #include "guiTypedefs.h"
 #include "guiProblem.h"
-#include "../solverCode/slvSolverThread.h"
+#include "../guiCode/guiSolverThread.h"
 
 extern Problem *problem;
 extern bool pauseSolveThread;
@@ -19,9 +19,9 @@ extern QWaitCondition continueSolveThread;
 
 void mainWindow::setParameters()
 {
-   problem->setScheme(schemeCombo->currentIndex());	// 0: SIMPLE, 1: SIMPLEC, 2: SIMPLER
-   problem->setDiscretization(discretizationCombo->currentIndex());	// 0: Central, 1: Upwind, 2: Hybrid, 3: Power law
-	
+   problem->setScheme(schemeCombo->currentIndex());                  // 0: SIMPLE, 1: SIMPLEC, 2: SIMPLER
+   problem->setDiscretization(discretizationCombo->currentIndex());  // 0: Central, 1: Upwind, 2: Hybrid, 3: Power law
+   
    problem->setKinvis(kinvisEdit->text().toFloat());
    problem->setDensity(densityEdit->text().toFloat());
    problem->setRelaxation(0, uRelaxationEdit->text().toFloat());
@@ -47,12 +47,12 @@ void mainWindow::setParameters()
       problem->setIsRestart(TRUE);
    else
       problem->setIsRestart(FALSE);
-} // End of setParameters
+} // End of function setParameters()
 
 
 
 
-void mainWindow::restartStateChanged (int state)
+void mainWindow::restartStateChanged(int state)
 {
    if (restartCheck->isChecked()) {
       uICedit->setEnabled(FALSE);
@@ -63,14 +63,14 @@ void mainWindow::restartStateChanged (int state)
       vICedit->setEnabled(TRUE);
       pICedit->setEnabled(TRUE);
    }
-} // End of restartStateChanged
+}
 
 
 
 
-void mainWindow::schemeOrStrategyChanged (int state)
+void mainWindow::schemeOrStrategyChanged(int state)
 {
-   if (strategyCombo->currentIndex() == 0) {	// Iterative
+   if (strategyCombo->currentIndex() == 0) {   // Iterative
       timeDependentCheck->setChecked(FALSE);
       timeDependentCheck->setEnabled(FALSE);
       timeStepEdit->setEnabled(FALSE);
@@ -78,10 +78,10 @@ void mainWindow::schemeOrStrategyChanged (int state)
       vRelaxationEdit->setEnabled(TRUE);
       pRelaxationEdit->setEnabled(TRUE);
       //scalarRelaxationEdit->setEnabled(FALSE);
-      if (schemeCombo->currentIndex() == 1 || schemeCombo->currentIndex() == 2) {    // SIMPLEC or SIMPLER
+      if (schemeCombo->currentIndex() == 1 || schemeCombo->currentIndex() == 2) {   // SIMPLEC or SIMPLER
          pRelaxationEdit->setEnabled(FALSE);
       }
-   } else {									// Time marching
+   } else {   // Time marching
       timeDependentCheck->setEnabled(TRUE);
       timeStepEdit->setEnabled(TRUE);
       uRelaxationEdit->setEnabled(FALSE);
@@ -97,15 +97,7 @@ void mainWindow::schemeOrStrategyChanged (int state)
 
 
 
-void mainWindow::timeDependencyChanged(bool timeDependency)
-{
-   timeStepEdit->setEnabled(TRUE);
-}
-
-
-
-
-void mainWindow::startSolution (void)
+void mainWindow::startSolution(void)
 {
    if (!problem->mesh->getIsMeshGenerated()) {
       appendMessage(tr("ERROR: First generate the mesh. Solution will not start."), Qt::red);
@@ -130,17 +122,18 @@ void mainWindow::startSolution (void)
       return;
    }
 
-   if (!saveProblem())  // We need to save the problem before starting the solution.
+   if (!saveProblem())    // We need to save the problem before starting the solution.
       return;
 
-   rightTab->setCurrentIndex(1);	// Show the Convergence page.
+   rightTab->setCurrentIndex(1);  // Show the Convergence page.
    convergencePlot->initialize(problem->getMaxOuterIter());
    controlPointPlot->initialize(problem->getMaxOuterIter());
    solverThread.start();
    pauseButton->setEnabled(TRUE);
    terminateButton->setEnabled(TRUE);
    startButton->setEnabled(FALSE);
-} // End of function  startSolution()
+
+} // End of function startSolution()
 
 
 
@@ -151,7 +144,6 @@ void mainWindow::pauseSolution (void)
    pauseButton->setEnabled(FALSE);
    continueButton->setEnabled(TRUE);
    statusLabel->setText(tr("Status: PAUSED"));
-   // solverThread.wait(); // Cuneyt: This line makes the program irresponsive till the end of solverThread.
 }
 
 
@@ -172,7 +164,7 @@ void mainWindow::continueSolution (void)
 void mainWindow::terminateSolution (void)
 {
    terminateSolveThread = true;
-   if (pauseSolveThread) { // If the Terminate button is pressed after pressing the Pause button.
+   if (pauseSolveThread) {   // If the Terminate button is pressed after pressing the Pause button.
       continueSolution();
    }
    startButton->setEnabled(TRUE);
@@ -215,4 +207,3 @@ void mainWindow::setControlPointAxesLabels(double minX, double maxX, double minY
    controlPointMinYlabel->setText(QString("%1").arg(minY,0,'E',3) + " ");
    controlPointMaxYlabel->setText(QString("%1").arg(maxY,0,'E',3) + " ");
 }
-

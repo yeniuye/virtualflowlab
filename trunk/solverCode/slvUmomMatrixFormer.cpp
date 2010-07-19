@@ -1,250 +1,180 @@
-/***************************************************************/
-/*                 U MOMENTUM MATRIX FORMER                    */
-/***************************************************************/
-
 #include "slvFunctions.h"
 
-/*****************************************************************************/
-/* The function "UmomMatrixFormer" has many prameters and it forms 6 matrix  */
-/* Each of these matrices keeps the constants in the U-momentum equation.    */
-/* 4 of them is for neighbouring nodes, 1 for the U-cell of interest and 1   */
-/* for the source terms. The memory is allocated  outside the function.      */
-/*                                                                           */
-/* IMPORTANT : The array size which is allocated in the main function is     */
-/* larger than the needed size. Since some of the U-momentum cells are not   */
-/* computational cells e.g. U cells at the west and east boundaries.         */
-/* However these exstra memory allocation makes the indexing more reader     */
-/* friendly.                                                                 */
-/*                                                                           */
-/* MOST IMPORTANT : The U-momentum relaxation is impilimented at this setp   */
-/* in the formation of the matrices. The relaxation effects the center and   */
-/* source matrices (below).                                                  */
-/*****************************************************************************/
 
-void UmomMatrixFormer(double** &UmomaWest,double** &UmomaEast,
-double** &UmomaSouth,double** &UmomaNorth, double** &UmomaCenter,
-double** &UmomaSource,int Numi,int NumJ,double** UmomXConvFlux,
-double** UmomYConvFlux,double** YjIcoorFrontFaces,double** XjIcoorFrontFaces,
-double** YjicoorCorners, double** YJicoorSideFaces,
-double** UmomXDiffCond,double** UmomYDiffCond,double** PJIpressure,
-double** UJivelocity,double Kinvis,int DiffSchm,
-double** TimeURelaxPar,double** BoundaryLeft,double** BoundaryRight,double** BoundaryTop,
-double** BoundaryBottom,double Ro,double** XJIcoorCenter,double TimeStep,
-bool isTransient,int nBlockCells, int** BlockCellCoor)
+
+
+void UmomMatrixFormer(double** &UmomaWest, double** &UmomaEast, double** &UmomaSouth,
+                      double** &UmomaNorth, double** &UmomaCenter, double** &UmomaSource,
+                      double** UmomXConvFlux, double** UmomYConvFlux, double** UmomXDiffCond,
+                      double** UmomYDiffCond, double** uRelaxTM, int** BlockCellIndex)
 {
-   /**************  IMPLIMENTATION OF BOUNDARY CONDITIONS ***********************/
-   /* This part is the implimentation of boundary conditions on the u-momentum  */
-   /* equation. The boundary effects are added to the system as source terms.   */
-   /* For a solidwall (Not moving) the driving force is the shear stress and    */
-   /* the effect of it is implimented as a source "BndryCntrSrc" to             */
-   /* "UmomaCenter" term.                                                       */
-   /* The moving wall has two source terms one is common with the solid wall    */
-   /* and explained above. The other source term "BndryRHSSrc" is added to the  */
-   /* "UmomaSource" term.                                                       */
-   /* In the current problem we have a solidwall at the bottom and a movig wall */
-   /* at the top so the boundary conditions are developed for this case below.  */
-   /* Since it is U-momentum equation the right and left walls do not need any  */
-   /* special treatment because u velocity is perpendicular to the walls, the   */
-   /* idea is explained in detail in the sheets.                                */
-   /*****************************************************************************/
+   /*****************************************************************************
+    This function calculates the coefficients of the u momentum matrix stored in
+    6 matrices. 4 of these are for neighbouring nodes, 1 for the u cell of
+    interest and 1 for the source term.
+
+    IMPORTANT : These 6 arrays are allocated in the main function as larger than
+    the necessary size. Some of the u momentum cells are not computational
+    cells e.g. u cells at the West and East boundaries. However, this extra
+    memory allocation makes the indexing easier to follow.
+
+    IMPORTANT : u momentum relaxation is also implemented in this function.
+    Relaxation effects center and source terms.
+   *****************************************************************************/
+
+
+   /*************************  IMPLEMENTATION OF BCs ****************************
+    First part is for the implementation of BCs of u momentum equation. Boundary
+    effects are added to the system as source terms. For a stationary solid wall
+    the driving force is the shear stress and the effect of it is implemented as
+    a source (BndryCntrSrc) to UmomaCenter term.
+    
+    Moving walls have two source terms, one is similar to the stationary wall
+    case as explained above. The other source term (BndryRHSSrc) is added to
+    UmomaSource term.
+
+    For u momentum equation right and left walls do not need any special
+    treatment because u velocity is perpendicular to these walls.
+
+    // Cuneyt: Think about this comment
+
+    *****************************************************************************/
 
    double** BndryCntrSrc;
-   BndryCntrSrc = MemoryAllocater2D(NumJ,Numi);
    double** BndryRHSSrc;
+   BndryCntrSrc = MemoryAllocater2D(NumJ,Numi);
    BndryRHSSrc = MemoryAllocater2D(NumJ,Numi);
 
-
-   /* WALL BC (part 1/3)
-   The following for loop is the related with the wall boundary condition
-   it creates the necessary sources for the implimentation of wall boundary
-   condition to the U-momentum equtation a similar procedure is followed in
-   V-momentum equation */
-
-   for(int i=1;i<Numi-1;i++) {
-      if (BoundaryBottom[i][0]==1) {
-         BndryCntrSrc[1][i]= -1 * Kinvis /(YJicoorSideFaces[1][i]-YJicoorSideFaces[0][i])
-         * (XjIcoorFrontFaces[0][i+1]-XjIcoorFrontFaces[0][i]);
-
-         BndryRHSSrc[1][i] = Kinvis /(YJicoorSideFaces[1][i]-YjicoorCorners[0][i])
-         * (XjIcoorFrontFaces[0][i+1]-XjIcoorFrontFaces[0][i])* BoundaryBottom[i][1];
+   // WALL BC (part 1/3)
+   // Following for loop creates the necessary sources for wall BCs
+   for(int i=1; i<Numi-1; i++) {
+      if (BoundaryBottom[i][0] == 1) {
+         BndryCntrSrc[1][i] = -1 * kinvis / (YJi[1][i] - YJi[0][i]) * (XjI[0][i+1] - XjI[0][i]);
+         BndryRHSSrc[1][i]  =      kinvis / (YJi[1][i] - Yji[0][i]) * (XjI[0][i+1] - XjI[0][i]) * BoundaryBottom[i][1];
       }
 
-
-      if (BoundaryTop[i][0]==1) {
-         BndryCntrSrc[NumJ-2][i] = -1 * Kinvis /(YJicoorSideFaces[NumJ-1][i]-YJicoorSideFaces[NumJ-2][i])
-         * (XjIcoorFrontFaces[NumJ-2][i+1]-XjIcoorFrontFaces[NumJ-2][i]);
-
-         BndryRHSSrc[NumJ-2][i] = Kinvis /(YjicoorCorners[NumJ-2][i]-YJicoorSideFaces[NumJ-2][i])
-         * (XjIcoorFrontFaces[NumJ-2][i+1]-XjIcoorFrontFaces[NumJ-2][i])* BoundaryTop[i][1];
+      if (BoundaryTop[i][0] == 1) {
+         BndryCntrSrc[NumJ-2][i] = -1 * kinvis / (YJi[NumJ-1][i] - YJi[NumJ-2][i]) * (XjI[NumJ-2][i+1] - XjI[NumJ-2][i]);
+         BndryRHSSrc[NumJ-2][i]  =      kinvis / (Yji[NumJ-2][i] - YJi[NumJ-2][i]) * (XjI[NumJ-2][i+1] - XjI[NumJ-2][i]) * BoundaryTop[i][1];
       }
    }
 
-   // BLOCK CELL CALCULATION
+   // Modification for blocked cells which are treated as solid walls
    for(int NumBlck=0; NumBlck<nBlockCells; NumBlck++) {
-      for(int J=BlockCellCoor[NumBlck][0]+1;J<BlockCellCoor[NumBlck][1]+1;J++) {
-         for(int i=BlockCellCoor[NumBlck][2];i<BlockCellCoor[NumBlck][3]+1;i++) {
-            BndryCntrSrc[J][i] = -1 * pow(10.0,30);
+      for(int J=BlockCellIndex[NumBlck][0]+1; J<BlockCellIndex[NumBlck][1]+1; J++) {
+         for(int i=BlockCellIndex[NumBlck][2]; i<BlockCellIndex[NumBlck][3]+1; i++) {
+            BndryCntrSrc[J][i] = -1 * pow(10.0, 30);
             BndryRHSSrc[J][i]= 0;
          }
       }
    }
 
-   /*****************************************************************************/
-   /* This part calculates the coefficients as it is in the references listed   */
-   /* below.It is important to realize that NOT ALL OF THE U-CELLS ARE          */
-   /* COMPUTATIONAL CELLS                                                       */
-   /*****************************************************************************/
+
+   // Calculate the coefficient of u momentum equation. It is important to remember
+   // that NOT all u cells are computational cells.
 
    /************************   CENTRAL DIFFERENCING ******************************/
-   if (DiffSchm == 1) {
-      for(int J=1;J<NumJ-1;J++) {
-         for(int i=1;i<Numi-1;i++) {
-            UmomaWest[J][i] = (UmomXDiffCond[J][i] + 0.5*UmomXConvFlux[J][i]) *
-            (YjIcoorFrontFaces[J][i]-YjIcoorFrontFaces[J-1][i]);
-
-            UmomaEast[J][i] = (UmomXDiffCond[J][i+1] - 0.5*UmomXConvFlux[J][i+1]) *
-            (YjIcoorFrontFaces[J][i+1]-YjIcoorFrontFaces[J-1][i+1]);
-
-            UmomaSouth[J][i] = (UmomYDiffCond[J-1][i] + 0.5*UmomYConvFlux[J-1][i]) *
-            (XjIcoorFrontFaces[J-1][i+1]-XjIcoorFrontFaces[J-1][i]);
-
-            UmomaNorth[J][i] = (UmomYDiffCond[J][i] - 0.5*UmomYConvFlux[J][i]) *
-            (XjIcoorFrontFaces[J][i+1]-XjIcoorFrontFaces[J][i]);
+   if (discSchm == 1) {
+      for(int J=1; J<NumJ-1; J++) {
+         for(int i=1; i<Numi-1; i++) {
+            UmomaWest[J][i]  = (UmomXDiffCond[J][i]   + 0.5 * UmomXConvFlux[J][i])   * (YjI[J][i]     - YjI[J-1][i]);
+            UmomaEast[J][i]  = (UmomXDiffCond[J][i+1] - 0.5 * UmomXConvFlux[J][i+1]) * (YjI[J][i+1]   - YjI[J-1][i+1]);
+            UmomaSouth[J][i] = (UmomYDiffCond[J-1][i] + 0.5 * UmomYConvFlux[J-1][i]) * (XjI[J-1][i+1] - XjI[J-1][i]);
+            UmomaNorth[J][i] = (UmomYDiffCond[J][i]   - 0.5 * UmomYConvFlux[J][i])   * (XjI[J][i+1]   - XjI[J][i]);
          }
       }
    }
    /***********************   UPWIND DIFFERENCING ********************************/
-   else if (DiffSchm == 2) {
-      for(int J=1;J<NumJ-1;J++) {
-         for(int i=1;i<Numi-1;i++) {
-            UmomaWest[J][i] =(UmomXDiffCond[J][i] + max (UmomXConvFlux[J][i],0.0))*
-            (YjIcoorFrontFaces[J][i]-YjIcoorFrontFaces[J-1][i]);
-
-            UmomaEast[J][i] =(UmomXDiffCond[J][i+1] + max (0.0,-1*UmomXConvFlux[J][i+1]))*
-            (YjIcoorFrontFaces[J][i+1]-YjIcoorFrontFaces[J-1][i+1]);
-
-            UmomaSouth[J][i] =(UmomYDiffCond[J-1][i] + max (UmomYConvFlux[J-1][i],0.0))*
-            (XjIcoorFrontFaces[J-1][i+1]-XjIcoorFrontFaces[J-1][i]);
-
-            UmomaNorth[J][i] =(UmomYDiffCond[J][i] + max (0.0,-1*UmomYConvFlux[J][i]))*
-            (XjIcoorFrontFaces[J][i+1]-XjIcoorFrontFaces[J][i]);
+   else if (discSchm == 2) {
+      for(int J=1; J<NumJ-1; J++) {
+         for(int i=1; i<Numi-1; i++) {
+            UmomaWest[J][i]  = (UmomXDiffCond[J][i]   + max(0.0, UmomXConvFlux[J][i])     ) * (YjI[J][i]     - YjI[J-1][i]);
+            UmomaEast[J][i]  = (UmomXDiffCond[J][i+1] + max(0.0, -1*UmomXConvFlux[J][i+1])) * (YjI[J][i+1]   - YjI[J-1][i+1]);
+            UmomaSouth[J][i] = (UmomYDiffCond[J-1][i] + max(0.0, UmomYConvFlux[J-1][i])   ) * (XjI[J-1][i+1] - XjI[J-1][i]);
+            UmomaNorth[J][i] = (UmomYDiffCond[J][i]   + max(0.0, -1*UmomYConvFlux[J][i])  ) * (XjI[J][i+1]   - XjI[J][i]);
          }
       }
    }
    /**********************   HYBRID DIFFERENCING *********************************/
-   else if (DiffSchm == 3) {
-      for(int J=1;J<NumJ-1;J++) {
-         for(int i=1;i<Numi-1;i++) {
-            UmomaWest[J][i] = (max(max(UmomXConvFlux[J][i],0.0),
-            (UmomXDiffCond[J][i]+0.5*UmomXConvFlux[J][i])))*
-            (YjIcoorFrontFaces[J][i]-YjIcoorFrontFaces[J-1][i]);
-
-            UmomaEast[J][i] = (max(max(-1*UmomXConvFlux[J][i+1],0.0),
-            (UmomXDiffCond[J][i+1]-0.5*UmomXConvFlux[J][i+1])))*
-            (YjIcoorFrontFaces[J][i+1]-YjIcoorFrontFaces[J-1][i+1]);
-
-            UmomaSouth[J][i] = (max(max(UmomYConvFlux[J-1][i],0.0),
-            (UmomYDiffCond[J-1][i]+0.5*UmomYConvFlux[J-1][i])))*
-            (XjIcoorFrontFaces[J-1][i+1]-XjIcoorFrontFaces[J-1][i]);
-
-            UmomaNorth[J][i] = (max(max(-1*UmomYConvFlux[J][i],0.0),
-            (UmomYDiffCond[J][i]-0.5*UmomYConvFlux[J][i])))*
-            (XjIcoorFrontFaces[J][i+1]-XjIcoorFrontFaces[J][i]);
+   else if (discSchm == 3) {
+      for(int J=1; J<NumJ-1; J++) {
+         for(int i=1; i<Numi-1; i++) {
+            UmomaWest[J][i]  = (max(max(0.0, UmomXConvFlux[J][i]     ), (UmomXDiffCond[J][i]   + 0.5 * UmomXConvFlux[J][i]))  ) * (YjI[J][i]     - YjI[J-1][i]);
+            UmomaEast[J][i]  = (max(max(0.0, -1*UmomXConvFlux[J][i+1]), (UmomXDiffCond[J][i+1] - 0.5 * UmomXConvFlux[J][i+1]))) * (YjI[J][i+1]   - YjI[J-1][i+1]);
+            UmomaSouth[J][i] = (max(max(0.0, UmomYConvFlux[J-1][i]   ), (UmomYDiffCond[J-1][i] + 0.5 * UmomYConvFlux[J-1][i]))) * (XjI[J-1][i+1] - XjI[J-1][i]);
+            UmomaNorth[J][i] = (max(max(0.0, -1*UmomYConvFlux[J][i]  ), (UmomYDiffCond[J][i]   - 0.5 * UmomYConvFlux[J][i]))  ) * (XjI[J][i+1]   - XjI[J][i]);
          }
       }
    }
    /**********************   POWERLAW DIFFERENCING *******************************/
-   else if (DiffSchm == 4) {
-      for(int J=1;J<NumJ-1;J++) {
-         for(int i=1;i<Numi-1;i++) {
-            UmomaWest[J][i] = (UmomXDiffCond[J][i] * max(0.0,
-            pow(1-0.1*fabs(UmomXConvFlux[J][i]/UmomXDiffCond[J][i]),5))
-            + max(UmomXConvFlux[J][i],0.0))
-            *(YjIcoorFrontFaces[J][i]-YjIcoorFrontFaces[J-1][i]);
-
-            UmomaEast[J][i] = (UmomXDiffCond[J][i+1] * max (0.0,
-            pow(1-0.1*fabs(UmomXConvFlux[J][i+1]/UmomXDiffCond[J][i+1]),5))
-            + max(-1*UmomXConvFlux[J][i+1],0.0))
-            *(YjIcoorFrontFaces[J][i+1]-YjIcoorFrontFaces[J-1][i+1]);
-
-            UmomaSouth[J][i] = (UmomYDiffCond[J-1][i] * max(0.0,
-            pow(1-0.1*fabs(UmomYConvFlux[J-1][i]/UmomYDiffCond[J-1][i]),5))
-            + max(UmomYConvFlux[J-1][i],0.0))
-            *(XjIcoorFrontFaces[J-1][i+1]-XjIcoorFrontFaces[J-1][i]);
-
-            UmomaNorth[J][i] = (UmomYDiffCond[J][i] * max(0.0,
-            pow(1 - 0.1*fabs(UmomYConvFlux[J][i]/UmomYDiffCond[J][i]),5))
-            + max(-1*UmomYConvFlux[J][i],0.0))
-            *(XjIcoorFrontFaces[J][i+1]-XjIcoorFrontFaces[J][i]);
+   else if (discSchm == 4) {
+      for(int J=1; J<NumJ-1; J++) {
+         for(int i=1; i<Numi-1; i++) {
+            UmomaWest[J][i]  = (UmomXDiffCond[J][i]   * max(0.0, pow(1 - 0.1 * fabs(UmomXConvFlux[J][i]   / UmomXDiffCond[J][i]), 5)  ) + max(0.0, UmomXConvFlux[J][i])     ) * (YjI[J][i]     - YjI[J-1][i]);
+            UmomaEast[J][i]  = (UmomXDiffCond[J][i+1] * max(0.0, pow(1 - 0.1 * fabs(UmomXConvFlux[J][i+1] / UmomXDiffCond[J][i+1]), 5)) + max(0.0, -1*UmomXConvFlux[J][i+1])) * (YjI[J][i+1]   - YjI[J-1][i+1]);
+            UmomaSouth[J][i] = (UmomYDiffCond[J-1][i] * max(0.0, pow(1 - 0.1 * fabs(UmomYConvFlux[J-1][i] / UmomYDiffCond[J-1][i]), 5)) + max(0.0, UmomYConvFlux[J-1][i])   ) * (XjI[J-1][i+1] - XjI[J-1][i]);
+            UmomaNorth[J][i] = (UmomYDiffCond[J][i]   * max(0.0, pow(1 - 0.1 * fabs(UmomYConvFlux[J][i]   / UmomYDiffCond[J][i]), 5)  ) + max(0.0, -1*UmomYConvFlux[J][i])  ) * (XjI[J][i+1]   - XjI[J][i]);
          }
       }
    }
 
-   // The STEADY or TRANSIENT part
+   // STEADY or TRANSIENT part
 
-   if (isTransient == 0) {      // STEADY
-      for(int J=1;J<NumJ-1;J++) {
-         for(int i=1;i<Numi-1;i++) {
-            UmomaCenter[J][i] =
-            (UmomaWest[J][i]+UmomaEast[J][i]+UmomaSouth[J][i]+UmomaNorth[J][i]+
-            UmomXConvFlux[J][i+1]*(YjIcoorFrontFaces[J][i+1]-YjIcoorFrontFaces[J-1][i+1])-
-            UmomXConvFlux[J][i]*(YjIcoorFrontFaces[J][i]-YjIcoorFrontFaces[J-1][i])+
-            UmomYConvFlux[J][i]*(XjIcoorFrontFaces[J][i+1]-XjIcoorFrontFaces[J][i])-
-            UmomYConvFlux[J-1][i]*(XjIcoorFrontFaces[J-1][i+1]-XjIcoorFrontFaces[J-1][i])
-            -BndryCntrSrc[J][i] ) / TimeURelaxPar[J][i];
+   if (isTransient == 0) {          // STEADY
+      for(int J=1; J<NumJ-1; J++) {
+         for(int i=1; i<Numi-1; i++) {
+            UmomaCenter[J][i] = (UmomaWest[J][i] + UmomaEast[J][i] + UmomaSouth[J][i] + UmomaNorth[J][i] +
+                                 UmomXConvFlux[J][i+1] * (YjI[J][i+1]   - YjI[J-1][i+1]) -
+                                 UmomXConvFlux[J][i]   * (YjI[J][i]     - YjI[J-1][i]  ) +
+                                 UmomYConvFlux[J][i]   * (XjI[J][i+1]   - XjI[J][i]    ) -
+                                 UmomYConvFlux[J-1][i] * (XjI[J-1][i+1] - XjI[J-1][i]  ) -
+                                 BndryCntrSrc[J][i] ) / uRelaxTM[J][i];
 
-            UmomaSource[J][i] = (PJIpressure[J][i]-PJIpressure[J][i+1])*
-            (YjicoorCorners[J][i]-YjicoorCorners[J-1][i]) + BndryRHSSrc[J][i] +
-            (1-TimeURelaxPar[J][i])* UmomaCenter[J][i] * UJivelocity[J][i];
+            UmomaSource[J][i] = (pJI[J][i] - pJI[J][i+1]) * (Yji[J][i] - Yji[J-1][i]) + BndryRHSSrc[J][i] +
+                                (1 - uRelaxTM[J][i]) * UmomaCenter[J][i] * UJi[J][i];
          }
       }
-   } else if (isTransient == 1) {    // TRANSIENT
-      for(int J=1;J<NumJ-1;J++) {
-         for(int i=1;i<Numi-1;i++) {
-            UmomaCenter[J][i] =
-            (UmomaWest[J][i]+UmomaEast[J][i]+UmomaSouth[J][i]+UmomaNorth[J][i]+
-            UmomXConvFlux[J][i+1]*(YjIcoorFrontFaces[J][i+1]-YjIcoorFrontFaces[J-1][i+1])-
-            UmomXConvFlux[J][i]*(YjIcoorFrontFaces[J][i]-YjIcoorFrontFaces[J-1][i])+
-            UmomYConvFlux[J][i]*(XjIcoorFrontFaces[J][i+1]-XjIcoorFrontFaces[J][i])-
-            UmomYConvFlux[J-1][i]*(XjIcoorFrontFaces[J-1][i+1]-XjIcoorFrontFaces[J-1][i])
-            -BndryCntrSrc[J][i] ) +
-            Ro * (YjicoorCorners[J][i]-YjicoorCorners[J-1][i]) *
-            (XJIcoorCenter[J][i+1] - XJIcoorCenter[J][i]) / TimeStep;
+   } else if (isTransient == 1) {   // TRANSIENT
+      for(int J=1; J<NumJ-1; J++) {
+         for(int i=1; i<Numi-1; i++) {
+            UmomaCenter[J][i] = (UmomaWest[J][i] + UmomaEast[J][i] + UmomaSouth[J][i] + UmomaNorth[J][i] +
+                                 UmomXConvFlux[J][i+1] * (YjI[J][i+1]   - YjI[J-1][i+1]) -
+                                 UmomXConvFlux[J][i]   * (YjI[J][i]     - YjI[J-1][i]  ) +
+                                 UmomYConvFlux[J][i]   * (XjI[J][i+1]   - XjI[J][i]    ) -
+                                 UmomYConvFlux[J-1][i] * (XjI[J-1][i+1] - XjI[J-1][i]  ) -
+                                 BndryCntrSrc[J][i] ) + density * (Yji[J][i] - Yji[J-1][i]) * (XJI[J][i+1] - XJI[J][i]) / timeStep;
 
-            UmomaSource[J][i] = (PJIpressure[J][i]-PJIpressure[J][i+1])*
-            (YjicoorCorners[J][i]-YjicoorCorners[J-1][i]) + BndryRHSSrc[J][i] +
-            Ro * (YjicoorCorners[J][i]-YjicoorCorners[J-1][i]) *
-            (XJIcoorCenter[J][i+1] - XJIcoorCenter[J][i]) / TimeStep * UJivelocity[J][i];
+            UmomaSource[J][i] = (pJI[J][i] - pJI[J][i+1]) * (Yji[J][i] - Yji[J-1][i]) + BndryRHSSrc[J][i] +
+                                 density * (Yji[J][i]-Yji[J-1][i]) * (XJI[J][i+1] - XJI[J][i]) / timeStep * UJi[J][i];
          }
       }
    }
 
 
    // OUTLET BC (part (2/4)
-   for(int J=1;J<NumJ-1;J++) {
-      if (BoundaryRight[J][0]==3) {
+   for(int J=1; J<NumJ-1; J++) {
+      if (BoundaryRight[J][0] == 3) {
          UmomaCenter[J][Numi-2] = UmomaCenter[J][Numi-2] - UmomaEast[J][Numi-2];
-         UmomaEast[J][Numi-2]=0;
+         UmomaEast[J][Numi-2] = 0;
       }
-      if (BoundaryLeft[J][0]==3) {
+      if (BoundaryLeft[J][0] == 3) {
          UmomaCenter[J][1] = UmomaCenter[J][1] - UmomaWest[J][1];
-         UmomaWest[J][1]=0;
+         UmomaWest[J][1] = 0;
       }
    }
 
-   for(int i=1;i<Numi-1;i++) {
-      if (BoundaryTop[i][0]==3) {
+   for(int i=1; i<Numi-1; i++) {
+      if (BoundaryTop[i][0] == 3) {
          UmomaCenter[NumJ-2][i] = UmomaCenter[NumJ-2][i] - UmomaNorth[NumJ-2][i];
          UmomaNorth[NumJ-2][i] = 0;
       }
-      if (BoundaryBottom[i][0]==3) {
+      if (BoundaryBottom[i][0] == 3) {
          UmomaCenter[1][i] = UmomaCenter[1][i] - UmomaSouth[1][i];
          UmomaSouth[1][i] = 0;
       }
    }
 
-   MemoryDeAllocater2D(BndryCntrSrc,NumJ,Numi);
-   MemoryDeAllocater2D(BndryRHSSrc,NumJ,Numi);
+   MemoryDeAllocater2D(BndryCntrSrc, NumJ, Numi);
+   MemoryDeAllocater2D(BndryRHSSrc, NumJ, Numi);
 
 }  // End of function UmomMatrixFormer()
-

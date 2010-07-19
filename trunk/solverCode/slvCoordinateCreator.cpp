@@ -1,147 +1,114 @@
-/***************************************************************/
-/*       COORDINATE DATA CREATER                               */
-/***************************************************************/
-
 #include "slvFunctions.h"
 
-/*****************************************************************************/
-/* Function CoordinateCreater takes 14 arguments,it takes all the coordinate */
-/* arrays. "XijcoorCorners" and "YijcoorCorners" arrays are previously read  */
-/* from a text file. All the remaining coordinate arrays of staggered grid   */
-/* arrangement are calculated here.                                          */
-/* "SideFaces" denotes the face which the Uvelocity is perpendicular         */
-/* "FrontFaces" denotes the face which the Vvelocity is perpendicular        */
-/*****************************************************************************/
-void CoordinateCreater(double** XjicoorCorners,
-double** YjicoorCorners,int NumXcells, int NumYcells,
-int Numi,int Numj,int NumI,int NumJ,
-double** &XJicoorSideFaces,double** &YJicoorSideFaces,
-double** &XjIcoorFrontFaces,double** &YjIcoorFrontFaces,
-double** &XJIcoorCenter,double** &YJIcoorCenter)
+
+
+
+void CoordinateCreater()
 {
-   /* Memory is allocaded for the 6 matrices by using a predefined function
-   the type is double by default. */
-   XJicoorSideFaces = MemoryAllocater2D(NumJ,Numi);
-   YJicoorSideFaces = MemoryAllocater2D(NumJ,Numi);
-   XjIcoorFrontFaces = MemoryAllocater2D(Numj,NumI);
-   YjIcoorFrontFaces = MemoryAllocater2D(Numj,NumI);
-   XJIcoorCenter = MemoryAllocater2D(NumJ,NumI);
-   YJIcoorCenter = MemoryAllocater2D(NumJ,NumI);
-
-
-   /* First the coordinates at the inner cells are calculated by using this two
-   previously known coordinate arrays, x coordinates of the pressure cell
-   corners and y coordinate of the presure cell corners.*/
-
-   /*****************INNER CELL COORDINATES CALCULATED HERE**********************/
-
-   // ->> The coordinate of the center of the west and east faces of the inner
-   //     pressure cells are calculated here XJi & YJi
-   for(int j=0;j<NumJ-2;j++) {
-      for(int i=0;i<Numi;i++) {
-         XJicoorSideFaces[j+1][i]=0.5*(XjicoorCorners[j][i]+XjicoorCorners[j+1][i]);
-         YJicoorSideFaces[j+1][i]=0.5*(YjicoorCorners[j][j]+YjicoorCorners[j+1][i]);
-      }
-   }
-
-   // ->> The coordinate of the center of the south and north faces of the inner
-   //     pressure cells are calculated here XjI & YjI
-   for(int j=0;j<Numj;j++) {
-      for(int i=0;i<NumI-2;i++) {
-         XjIcoorFrontFaces[j][i+1]=0.5*(XjicoorCorners[j][i]+XjicoorCorners[j][i+1]);
-         YjIcoorFrontFaces[j][i+1]=0.5*(YjicoorCorners[j][i]+YjicoorCorners[j][i+1]);
-      }
-   }
-
-   // ->> The coordinate of the center of the of the inner
-   //     pressure cells are calculated here XJI & YJI
-   for(int j=0;j<NumJ-2;j++) {
-      for(int i=0;i<NumI-2;i++) {
-         XJIcoorCenter[j+1][i+1] = 0.25*(XjicoorCorners[j][i]+XjicoorCorners[j][i+1]+
-                                   XjicoorCorners[j+1][i]+XjicoorCorners[j+1][i+1]);
-         YJIcoorCenter[j+1][i+1] = 0.25*(YjicoorCorners[j][i]+YjicoorCorners[j][i+1]+
-                                   YjicoorCorners[j+1][i]+YjicoorCorners[j+1][i+1]);
-      }
-   }
-   /*************INNER CELL COORDINATES CALCULATION ENDS HERE********************/
+   /*****************************************************************************
+    Xij and Yij are the corner coordinates of the pressure cells and they were
+    previously read from the input file. Here all remaining coordinate arrays
+    of staggered grid arrangement are calculated.
+   *****************************************************************************/
    
-   /*************BOUNDARY CELL COORDINATES ARE CALCULATED************************/
+   XJi = MemoryAllocater2D(NumJ, Numi);
+   YJi = MemoryAllocater2D(NumJ, Numi);
+   XjI = MemoryAllocater2D(Numj, NumI);
+   YjI = MemoryAllocater2D(Numj, NumI);
+   XJI = MemoryAllocater2D(NumJ, NumI);
+   YJI = MemoryAllocater2D(NumJ, NumI);
 
-   // ->> For West Boundary
-   //     XjIcoorFrontFaces & YjIcoorFrontFaces
-   for(int j=0;j<Numj;j++) {
-      XjIcoorFrontFaces[j][0] = 2*XjicoorCorners[j][0] - XjIcoorFrontFaces[j][1];
-      YjIcoorFrontFaces[j][0] = 2*YjicoorCorners[j][0] - YjIcoorFrontFaces[j][1];
-   }
-   //    XJIcoorCenter & YJIcoorCenter
-   for(int j=0;j<Numj-1;j++) {
-      XJIcoorCenter[j+1][0]=0.5*(XjIcoorFrontFaces[j][0]+XjIcoorFrontFaces[j+1][0]);
-      YJIcoorCenter[j+1][0]=0.5*(YjIcoorFrontFaces[j][0]+YjIcoorFrontFaces[j+1][0]);
-   }
+   // First coordinates at the inner (not boundary) cells are calculated using
+   // the known coordinates of pressure cell corners.
 
-   // ->> For East Boundary
-   //     XjIcoorFrontFaces & YjIcoorFrontFaces
-   for(int j=0;j<Numj;j++) {
-      XjIcoorFrontFaces[j][Numi] = 2*XjicoorCorners[j][Numi-1] - XjIcoorFrontFaces[j][Numi-1];
-      YjIcoorFrontFaces[j][Numi] = 2*YjicoorCorners[j][Numi-1] - YjIcoorFrontFaces[j][Numi-1];
+   // Coordinates of the center of West and East faces of inner pressure cells
+   // are calculated here as XJi and YJi
+   for(int j=0; j<NumJ-2; j++) {
+      for(int i=0; i<Numi; i++) {
+         XJi[j+1][i] = 0.5*(Xji[j][i] + Xji[j+1][i]);
+         YJi[j+1][i] = 0.5*(Yji[j][j] + Yji[j+1][i]);
+      }
    }
 
-   //    XJIcoorCenter & YJIcoorCenter
-   for(int j=0;j<Numj-1;j++) {
-      XJIcoorCenter[j+1][Numi] = 0.5*(XjIcoorFrontFaces[j][Numi] + XjIcoorFrontFaces[j+1][Numi]);
-      YJIcoorCenter[j+1][Numi] = 0.5*(YjIcoorFrontFaces[j][Numi] + YjIcoorFrontFaces[j+1][Numi]);
+   // Coordinates of the center of South and North faces of inner pressure
+   // cells are calculated here as XjI and YjI
+   for(int j=0; j<Numj; j++) {
+      for(int i=0; i<NumI-2; i++) {
+         XjI[j][i+1] = 0.5*(Xji[j][i] + Xji[j][i+1]);
+         YjI[j][i+1] = 0.5*(Yji[j][i] + Yji[j][i+1]);
+      }
    }
 
-   // ->> For South Boundary
-   //     XJicoorSideFaces & YJicoorSideFaces
-   for(int i=0;i<Numi;i++) {
-      XJicoorSideFaces[0][i] = 2*XjicoorCorners[0][i] - XJicoorSideFaces[1][i];
-      YJicoorSideFaces[0][i] = 2*YjicoorCorners[0][i] - YJicoorSideFaces[1][i];
+   // Coordinates of the center of inner pressure cells are calculated
+   // here as XJI and YJI
+   for(int j=0; j<NumJ-2; j++) {
+      for(int i=0; i<NumI-2; i++) {
+         XJI[j+1][i+1] = 0.25*(Xji[j][i] + Xji[j][i+1] + Xji[j+1][i] + Xji[j+1][i+1]);
+         YJI[j+1][i+1] = 0.25*(Yji[j][i] + Yji[j][i+1] + Yji[j+1][i] + Yji[j+1][i+1]);
+      }
+   }
+   
+
+   // Now coordinates related to the boundaries are calculated
+
+   // West boundary
+   for(int j=0; j<Numj; j++) {
+      XjI[j][0] = 2 * Xji[j][0] - XjI[j][1];
+      YjI[j][0] = 2 * Yji[j][0] - YjI[j][1];
+   }
+   for(int j=0; j<Numj-1; j++) {
+      XJI[j+1][0] = 0.5 * (XjI[j][0] + XjI[j+1][0]);
+      YJI[j+1][0] = 0.5 * (YjI[j][0] + YjI[j+1][0]);
    }
 
-   //     XJIcoorCenter & YJIcoorCenter
-   for(int i=0;i<Numi-1;i++) {
-      XJIcoorCenter[0][i+1]=0.5*(XJicoorSideFaces[0][i] + XJicoorSideFaces[0][i+1]);
-      YJIcoorCenter[0][i+1]=0.5*(YJicoorSideFaces[0][i] + YJicoorSideFaces[0][i+1]);
+   // East boundary
+   for(int j=0; j<Numj; j++) {
+      XjI[j][Numi] = 2 * Xji[j][Numi-1] - XjI[j][Numi-1];
+      YjI[j][Numi] = 2 * Yji[j][Numi-1] - YjI[j][Numi-1];
+   }
+   for(int j=0; j<Numj-1; j++) {
+      XJI[j+1][Numi] = 0.5*(XjI[j][Numi] + XjI[j+1][Numi]);
+      YJI[j+1][Numi] = 0.5*(YjI[j][Numi] + YjI[j+1][Numi]);
    }
 
-   // ->>  For North Boundary
-   //      XJicoorSideFaces & YJicoorSideFaces
-   for(int i=0;i<Numi;i++) {
-      XJicoorSideFaces[Numj][i]=2*XjicoorCorners[Numj-1][i]-
-      XJicoorSideFaces[Numj-1][i];
-      YJicoorSideFaces[Numj][i]=2*YjicoorCorners[Numj-1][i]-
-      YJicoorSideFaces[Numj-1][i];
+   // South boundary
+   for(int i=0; i<Numi; i++) {
+      XJi[0][i] = 2 * Xji[0][i] - XJi[1][i];
+      YJi[0][i] = 2 * Yji[0][i] - YJi[1][i];
+   }
+   for(int i=0; i<Numi-1; i++) {
+      XJI[0][i+1] = 0.5*(XJi[0][i] + XJi[0][i+1]);
+      YJI[0][i+1] = 0.5*(YJi[0][i] + YJi[0][i+1]);
    }
 
-   //     XJIcoorCenter & YJIcoorCenter
-   for(int i=0;i<Numi-1;i++) {
-     XJIcoorCenter[Numj][i+1] = 0.5*(XJicoorSideFaces[Numj][i] + XJicoorSideFaces[Numj][i+1]);
-     YJIcoorCenter[Numj][i+1] = 0.5*(YJicoorSideFaces[Numj][i] + YJicoorSideFaces[Numj][i+1]);
+   // North boundary
+   for(int i=0; i<Numi; i++) {
+      XJi[Numj][i] = 2 * Xji[Numj-1][i] - XJi[Numj-1][i];
+      YJi[Numj][i] = 2 * Yji[Numj-1][i] - YJi[Numj-1][i];
+   }
+   for(int i=0; i<Numi-1; i++) {
+     XJI[Numj][i+1] = 0.5*(XJi[Numj][i] + XJi[Numj][i+1]);
+     YJI[Numj][i+1] = 0.5*(YJi[Numj][i] + YJi[Numj][i+1]);
    }
 
-   // ->> The Four Corner of the Domain
-   /* The X and Y coordinates of the four corners of the computational domain is
-   calculated below. Although they are never used in calculations, they are used
-   to show the ghost cells in some of the Tecplot outputs e.g.
-   TecPlotPressureWriter */
+   // Coordinates of the four corners of the domain are calculated below.
+   // Although they are never used in calculations, they are used to show
+   // the ghost cells in some of the Tecplot outputs e.g. TecPlotPressureWriter
 
    // Bottom left corner
-   XJIcoorCenter[0][0]=2*XJicoorSideFaces[0][0]-XJIcoorCenter[0][1];
-   YJIcoorCenter[0][0]=2*YJicoorSideFaces[0][0]-YJIcoorCenter[0][1];
+   XJI[0][0] = 2 * XJi[0][0] - XJI[0][1];
+   YJI[0][0] = 2 * YJi[0][0] - YJI[0][1];
+   
    // Top left corner
-   XJIcoorCenter[Numj][0]=2*XJicoorSideFaces[Numj][0]-XJIcoorCenter[Numj][1];
-   YJIcoorCenter[Numj][0]=2*YJicoorSideFaces[Numj][0]-YJIcoorCenter[Numj][1];
+   XJI[Numj][0] = 2 * XJi[Numj][0] - XJI[Numj][1];
+   YJI[Numj][0] = 2 * YJi[Numj][0] - YJI[Numj][1];
+   
    // Bottom right corner
-   XJIcoorCenter[0][Numi]=2*XJicoorSideFaces[0][Numi-1]-XJIcoorCenter[0][Numi-1];
-   YJIcoorCenter[0][Numi]=2*YJicoorSideFaces[0][Numi-1]-YJIcoorCenter[0][Numi-1];
+   XJI[0][Numi] = 2 * XJi[0][Numi-1] - XJI[0][Numi-1];
+   YJI[0][Numi] = 2 * YJi[0][Numi-1] - YJI[0][Numi-1];
+   
    // Top right corner
-   XJIcoorCenter[Numj][Numi]=2*XJicoorSideFaces[Numj][Numi-1] -
-   XJIcoorCenter[Numj][Numi-1];
-   YJIcoorCenter[Numj][Numi]=2*YJicoorSideFaces[Numj][Numi-1] -
-   YJIcoorCenter[Numj][Numi-1];
-
-   /*************BOUNDARY CELL COORDINATES CALCULATION ENDS HERE*****************/
+   XJI[Numj][Numi] = 2 * XJi[Numj][Numi-1] - XJI[Numj][Numi-1];
+   YJI[Numj][Numi] = 2 * YJi[Numj][Numi-1] - YJI[Numj][Numi-1];
 
 }  // End of function CoordinateCreater()
-

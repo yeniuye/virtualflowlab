@@ -1,23 +1,22 @@
-/***************************************************************/
-/*                   WRITE DAT and OUT FILES                   */
-/***************************************************************/
-
 #include "slvFunctions.h"
 
-/*****************************************************************************/
-/* This function writes the calculated velocity and pressure values to a     */
-/* text file in the same format of the initial value text file. So that      */
-/* it can be used to continue to the current analysis.                       */
-/*****************************************************************************/
-void WriteOUTfile(double** &PJIpressure,double** &UJivelocity,
-double** &VjIvelocity,int NumI,int NumJ,int Numi,int Numj,string Directory,
-int OutIte)
+
+
+
+void writeOUTfile(int outerIter)
 {
+   /*****************************************************************************
+    This function writes the calculated velocity and pressure values to a file
+    with OUT extension. The user can rename an OUT file as MyProblem.restart and
+    use the velocity and pressure values in the file as an initial condition of
+    a new run.
+   *****************************************************************************/
+
    string OUTfileName;
 
    stringstream ss;
-   ss << OutIte;
-   OUTfileName = Directory + "_" + ss.str() + ".out";
+   ss << outerIter;
+   OUTfileName = fullProblemName + "_" + ss.str() + ".out";   // e.g. C:\VFL\Problems\MyProblem_1000.out
 
    ofstream OUTfile;
    OUTfile.open(OUTfileName.data());
@@ -28,7 +27,7 @@ int OutIte)
 
    for(int J=0; J<NumJ; J++) {
       for(int I=0; I<NumI; I++) {
-         OUTfile << PJIpressure[J][I] << "\n";
+         OUTfile << pJI[J][I] << "\n";
       }
    }
 
@@ -38,7 +37,7 @@ int OutIte)
 
    for(int J=0; J<NumJ; J++) {
       for(int i=0; i<Numi; i++) {
-         OUTfile << UJivelocity[J][i] << "\n";
+         OUTfile << UJi[J][i] << "\n";
       }
    }
 
@@ -48,29 +47,29 @@ int OutIte)
 
    for(int j=0; j<Numj; j++) {
       for(int I=0; I<NumI; I++) {
-         OUTfile << VjIvelocity[j][I] << "\n";
+         OUTfile << VjI[j][I] << "\n";
       }
    }
 
    OUTfile.close();
 
-}  // End of function WriteOUTfile()
+}  // End of function writeOUTfile()
 
 
 
 
-/* This function creates DAT files for Tecplot */
-void WriteDATfile(int OutIte,string Directory,
-double** UJivelocity,double** VjIvelocity,double** PJIpressure,
-double** XjicoorCorners,double** YjicoorCorners,int Numi,int Numj,
-bool isTecplot,double** PJIResidual,double** UJiResidual,
-double** VjIResidual,double** XjIcoorFrontFaces, double** YJicoorSideFaces,
-double** BoundaryTop,double** BoundaryBottom,double** BoundaryLeft,
-double** BoundaryRight,
-double** &Ujiavrg,double** &Vjiavrg,double** &Pjiavrg,
-double** &UjiResidual_avrg,double** &VjiResidual_avrg,double** &PjiResidual_avrg,
-double** &Vorticity_ji,int nBlockCells, int** BlockCellCoor)
+void writeDATfile(double** pJIResidual, double** UJiResidual, double** VjIResidual,
+                  double** &Ujiavrg, double** &Vjiavrg, double** &Pjiavrg,
+                  double** &UjiResidual_avrg, double** &VjiResidual_avrg, double** &PjiResidual_avrg,
+                  double** &Vorticity_ji, int** BlockCellIndex, int outerIter)
 {
+   /*****************************************************************************
+    This function first calls TransformColocate function to obtain velocity,
+    pressure and vorticity values at the corners of the pressure cells. Than
+    writes these values to a text file with extension DAT. These files can be
+    opened by the Tecplot software and also by VFL to do internal post-procesing.
+   *****************************************************************************/
+
    if (isTecplot == 0)
       return;
 
@@ -78,43 +77,23 @@ double** &Vorticity_ji,int nBlockCells, int** BlockCellCoor)
    ofstream DATfile;
 
    stringstream ss;
-   ss << OutIte;
-   DATfileName = Directory + "_" + ss.str() + ".dat";
+   ss << outerIter;
+   DATfileName = fullProblemName + "_" + ss.str() + ".dat";   // e.g. C:\VFL\Problems\MyProblem_1000.dat
 
    DATfile.open(DATfileName.data());
 
-   /******************************************************************************/
-   /* The U velocities are kept at Ji connections. So U velocities kept at the   */
-   /* physical boundaries for the east and west side boundaries. For the north   */
-   /* and south boundaries however the U velocities kept at the ghost cells.     */
-   /* So the values of U velocities carried to the physical boundary for the     */
-   /* north and south boundaries below (First).                                  */
-   /*                                                                            */
-   /* The reaming part takes the average of the U velocities and keep it at the  */
-   /* ij connections for interior nodes (Second).                                */
-   /* The aim is to show both U and V velocities and Pressure at the same node   */
-   /* which is the corner of scalar (pressure) cells that do not keep any        */
-   /* variable before.                                                           */
-   /*                                                                            */
-   /* So what is seen in the TECPLOT is the real physical case. And since we     */
-   /* keep all the variables at the same node we can draw vector plots.          */
-   /******************************************************************************/
-
-   TransformColocate(UJivelocity,VjIvelocity,PJIpressure,
-   XjicoorCorners,YjicoorCorners,Numi,Numj,PJIResidual,UJiResidual,VjIResidual,
-   XjIcoorFrontFaces,YJicoorSideFaces,
-   BoundaryTop,BoundaryBottom,BoundaryLeft,BoundaryRight,
-   Ujiavrg,Vjiavrg,Pjiavrg,
-   UjiResidual_avrg,VjiResidual_avrg,PjiResidual_avrg,
-   Vorticity_ji,nBlockCells,BlockCellCoor);
+   TransformColocate(pJIResidual, UJiResidual, VjIResidual,
+                     Ujiavrg, Vjiavrg, Pjiavrg, UjiResidual_avrg, VjiResidual_avrg,
+                     PjiResidual_avrg, Vorticity_ji, BlockCellIndex);
 
    DATfile << "TITLE = \"Uvelocity_Vvelocity_Pressure\"\n";
    DATfile << "VARIABLES = X,Y,U,V,P,U_res,V_res,P_res,Vorticity\n";
-   DATfile <<  "ZONE T =  \"ZONE 1\" ,i = " << Numi << ",j = " << Numj << ",F=POINT\n";
+   DATfile << "ZONE T =  \"ZONE 1\" ,i = " << Numi << ",j = " << Numj << ",F=POINT\n";
    DATfile << fixed << setprecision(10);
-   for(int j=0;j<Numj;j++) {
-      for(int i=0;i<Numi;i++) {
-         DATfile << XjicoorCorners[j][i] << " " << YjicoorCorners[j][i] << " " <<
+
+   for(int j=0; j<Numj; j++) {
+      for(int i=0; i<Numi; i++) {
+         DATfile << Xji[j][i] << " " << Yji[j][i] << " " <<
                     Ujiavrg[j][i] <<" " << Vjiavrg[j][i] << " " << Pjiavrg[j][i] << " " <<
                     UjiResidual_avrg[j][i] << " " << VjiResidual_avrg[j][i] << " " <<
                     PjiResidual_avrg[j][i] << " " << Vorticity_ji[j][i] << "\n";
@@ -123,5 +102,4 @@ double** &Vorticity_ji,int nBlockCells, int** BlockCellCoor)
 
    DATfile.close();
 
-}  // End of function WriteDATfile()
-
+}  // End of function writeDATfile()

@@ -1,9 +1,12 @@
-// Based on renderarea.h example
+// This header file is based on renderarea.h example
 
 #ifndef CONVERGENCEPLOT_H
 #define CONVERGENCEPLOT_H
 
 #include <QtGui>
+
+
+
 
 class ConvergencePlot : public QWidget
 {
@@ -51,6 +54,3 @@ class ConvergencePlot : public QWidget
 };
 
 #endif
-
-
-

@@ -1,4 +1,4 @@
-This file is created by Virtual Flow Lab 0.1. It may get corrupt if you modify it outside Virtual Flow Lab.
+This file is created by Virtual Flow Lab. It may get corrupt if you modify it outside Virtual Flow Lab.
 SECTION GEOMETRY**********************************
 4
 0  1  -1 -1 2  
@@ -29,19 +29,19 @@ SECTION BCIC**************************************
       |0                   |0                   |0                   |
 SECTION PARAMETERS********************************
 17 
-Scheme                                  1
+Scheme                                  2
 Discretization                          0
-Solution strategy                       0
-(Pseudo) time step                      
+Solution strategy                       1
+(Pseudo) time step                      0.001
 Kinematic viscosity (m2/s)              0.01
 Density (kg/m3)                         1
 u velocity relaxation                   0.5
 v velocity relaxation                   0.5
-Pressure relaxation                     
+Pressure relaxation                     0.5
 Scalar relaxation                       
-Max. number of outer iterations         4000
-Save interval                           1000
-Control point update interval           5
+Max. number of outer iterations         3000
+Save interval                           3000
+Control point update interval           10
 Convergence tolerance of outer iters.   1e-10
 Time dependent flow?                    0
 Create Tecplot files?                   1

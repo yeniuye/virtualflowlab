@@ -3,23 +3,26 @@
 
 #include <QtGui>
 #include "ui_mainWindow.h"
-#include "../solverCode/slvSolverThread.h"
+#include "../guiCode/guiSolverThread.h"
 
 class GLWidget;
 class ConvergencePlot;
 class ControlPointPlot;
 
+
+
+
 class mainWindow:public QMainWindow, Ui::MainWindow
 {
 Q_OBJECT
 public:
+   GLWidget *glWidget;
+   ConvergencePlot *convergencePlot;
+   ControlPointPlot *controlPointPlot;
    mainWindow();
 
 private:
-   GLWidget *glWidget;
    SolverThread solverThread;
-   ConvergencePlot *convergencePlot;
-   ControlPointPlot *controlPointPlot;
    void createActions();
    void setupLineEditValidators();
    void resetMainWindow();
@@ -33,14 +36,10 @@ public slots:
    void openProblem();
    bool saveProblem();
    void saveProblemAs();
-   void captureMainWindowGIF();
-   void captureMainWindowPNG();
-   void captureViewWindowGIF();
-   void captureViewWindowPNG();
-   void captureConvergencePlotGIF();
-   void captureConvergencePlotPNG();
-   void captureControlPointPlotGIF();
-   void captureControlPointPlotPNG();
+   void captureMainWindow();
+   void captureViewWindow();
+   void captureConvergencePlot();
+   void captureControlPointPlot();
    void geometryButtonsClicked();
    void readCfdFile();
    void writeCfdFile();
@@ -70,7 +69,6 @@ public slots:
    void appendMessage(QString, QColor);
    void restartStateChanged(int);
    void schemeOrStrategyChanged(int);
-   void timeDependencyChanged(bool);
    void setConvergenceAxesLabels(double, double, double, double);
    void setControlPointAxesLabels(double, double, double, double);
    void openResultFile();

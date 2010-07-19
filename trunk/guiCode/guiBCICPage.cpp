@@ -5,7 +5,7 @@
 #include "glwidget.h"
 #include "guiTypedefs.h"
 #include "guiProblem.h"
-#include "../solverCode/slvSolverThread.h"
+#include "../guiCode/guiSolverThread.h"
 
 extern Problem *problem;
 
@@ -70,7 +70,7 @@ void mainWindow::setBC()
    problem->mesh->primitives[p].setBCstring(1, vBCedit->text().toStdString() );
    problem->mesh->primitives[p].setBCstring(2, pBCedit->text().toStdString() );
 
-	glWidget->updateGL();    // cuneyt: In this updateGL, primitives for which BCs are set might be drawn with a different color.
+   glWidget->updateGL();    // Cuneyt: In this updateGL, primitives for which BCs are set might be drawn with a different color.
 }
 
 
@@ -78,9 +78,9 @@ void mainWindow::setBC()
 
 void mainWindow::setIC()
 {
-	problem->setICstring(0, uICedit->text().toStdString() );
-	problem->setICstring(1, vICedit->text().toStdString() );
-	problem->setICstring(2, pICedit->text().toStdString() );
+   problem->setICstring(0, uICedit->text().toStdString() );
+   problem->setICstring(1, vICedit->text().toStdString() );
+   problem->setICstring(2, pICedit->text().toStdString() );
 }
 
 
@@ -94,7 +94,7 @@ bool mainWindow::checkBC()
    int *dummyList;
    string *BCstr;
 
-   b = 0;  // Cuneyt: Multi-block support is missing.
+   b = 0;  // Cuneyt: No multi-block support.
 
    for (int i = 0; i < 4; i++) {  // Face counter
       counter = 0;  // Counter for the nodes on the face
@@ -125,7 +125,7 @@ bool mainWindow::checkIC()
       }
    }
    return true;
-}  // End of function checkIC()
+}
 
 
 

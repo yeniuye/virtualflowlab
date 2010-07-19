@@ -1,16 +1,25 @@
-/****************************************************************************/
-/*                   FLOW SOLVER OF THE VIRTUAL FLOW LAB                    */
-/****************************************************************************/
+/***********************************************************************************
+  FLOW SOLVER of VIRTUAL FLOW LAB
+
+  This flow solver is initially written
+  
+  by Mr. Gunes Nakiboglu (gunesnakib@gmail.com) for a masters degree study
+  
+  under the supervision of Dr. Cuneyt Sert (csert@metu.edu.tr)
+  
+  at Department of Mechanical Engrg., Middle East Technical Uni., Ankara, Turkey
+
+***********************************************************************************/
 
 #include <iostream>
 #include <fstream>
 #include <time.h>
 #include <math.h>
-#include <string>
 #include <stdio.h>
 
 #include "slvFunctions.h"
-#include "slvSolverThread.h"
+#include "slvGlobals.h"
+#include "../guiCode/guiSolverThread.h"
 #include "../guiCode/guiProblem.h"
 #include "../guiCode/guiTypedefs.h"
 
@@ -22,199 +31,283 @@ extern bool terminateSolveThread;
 extern QWaitCondition continueSolveThread;
 
 
-/*************************   VARIABLE LIST   ***********************/
+/**************************   IMPORTANT SOLVER VARIABLES   **************************
 
-// NOTE : The variables listed below are the variables that are defined in
-// the main only. There are also local variables used in the calculations.
+fullProblemName      Name of the CFD file including the folder, e.g. C:\VFL\Problems\MyProblem
 
-// NumXcells            --> Number of cells in x direction
-// NumYcells            --> Number of cells in y direction
+numXcells            Number of cells in x direction
+numYcells            Number of cells in y direction
 
-// Numi                 --> Number of U velocity nodes in x direction
-// Numj                 --> Number of V velocity nodes in y direction
-// NumI                 --> Number of V velocity nodes in x direction
-// NumJ                 --> Number of U velocity nodes in y direction
+Numi, NumI           Number of U and V velocity nodes in x direction
+Numj, NumJ           Number of V and U velocity nodes in y direction
 
-// GlobIte              --> Global Iteration Numbers
-// SaveInterval         --> The number of iterations that will pass between two tecplot files
-// Ro                   --> Density of the fluid
-// Kinvis               --> Kinematic Viscosity
+Xji, Yji             Coordinates of the corners of pressure cells
+XJi, YJi             Coordinates of the West and East face centers of pressure cells
+XjI, YjI             Coordinates of the South and North face centers of pressure cells
+XJI, YJI             Coordinates of pressure cell centers
 
-// PresRelax            --> Pressure relaxation parameter
-// UvelRelax            --> U velocity relaxation parameter
-// VvelRelax            --> V velocity relaxation parameter
-// ScalarRelax          --> Scalar variable relaxation parameter
+controlPointIndex    Control point indices
+BlockCellIndex       Upper and lower indices of blocked cells (This follows Gunes' original implementation,
+                     but seems a little bit weird now)
 
-// OuterTolerance       --> This is the convergence criteria for mass flux.
-// DiffSchm             --> Type of differencing scheme (Central,upwind,hybrid and power-law)
-// SolverType           --> Solver Algorithm (SIMPLE,SIMPLER,SIMPLEC)
-// SolverApproach       --> Solver Aproach (ITERATIVE,TIME MARCHING)
-// ResidualArray[4]     --> Keeps all form of residuals in the main
-// TimeStep             --> Time step used in the time marching approach
+density              Density of the fluid
+kinvis               Kinematic viscosity of the fluid
 
-// isTecplot            --> Determine whether Tecplot files will be created
-// isTransient          --> Determine whether the problem is transient
+outerIterMax         Maximum outer iteration number
+outerTolerance       This is the convergence criteria for mass flux
 
-// nTrackPoints         --> Number of track points used in the problem
-// trackPointSaveInterval   Save interval for track points
-// nBlockCells          --> Number of block cells
+discSchm             Type of space discretization scheme. Can be CENTRAL, UPWIND, HYBRID, POWER-LAW
+solverAlgorithm      Solver algorithm. Can be SIMPLE, SIMPLER, SIMPLEC
+solverApproach       Solver aproach. Can be ITERATIVE, TIME MARCHING
 
-// XjicoorCorners       --> x coordinates of the corners of the pressure cells
-// YjicoorCorners       --> y coordinates of the corners of the pressure cells
-// XJicoorSideFaces     --> x coordinates of the west and east face centers of the pressure cells
-// YJicoorSideFaces     --> y coordinates of the west and east face centers of the pressure cells
-// XjIcoorFrontFaces    --> x coordinates of the south and north face centers of the pressure cells
-// YjIcoorFrontFaces    --> y coordinates of the south and north face centers of the pressure cells
-// XJIcoorCenter        --> x coordinate of the pressure cell centers (nodes)
-// YJIcoorCenter        --> y coordinate of the pressure cell centers (nodes)
+isTransient          Determine whether the problem is transient
+isTecplot            Flag for Tecplot file creation
+isRestart            Flag for starting from a previous solution
+timeStep             Time step used in the time marching approach
+saveInterval         A Tecplot file will be created at every saveInterval iterations
 
-// PJIpressure          --> Pressure values
-// UJivelocity          --> U velocity values
-// VjIvelocity          --> V velocity values
-// ScalarVar            --> Scalar variable values
+pJI                  Pressure values
+UJi                  u velocity values
+VjI                  v velocity values
+ScalarVar            Scalar variable values
 
-// TrackPointYX         --> Coordinates of the track cells
-// BlockCellCoor        --> Coordinates of the block cells
+pJIOLD               Pressure values of previous iteration
+UJiOLD               u-velocity values of previous iteration
+VjIOLD               v-velocity values of previous iteration
 
-// BoundaryLeft         --> Boundary type and magnitude (if necessary) for left boundary
-// BoundaryRight        --> Boundary type and magnitude (if necessary) for right boundary
-// BoundaryTop          --> Boundary type and magnitude (if necessary) for top boundary
-// BoundaryBottom       --> Boundary type and magnitude (if necessary) for bottom boundary
+pRelax               Pressure relaxation parameter
+uRelax               u velocity relaxation parameter
+vRelax               v velocity relaxation parameter
+scalarRelax          Scalar variable relaxation parameter
 
-// UmomXConvFlux        --> Convective fluxes for U cells in west and east faces
-// UmomXConvFlux        --> Convective fluxes for U cells in south and north faces
-// UmomXDiffCond        --> Diffusive fluxes for U cells in west and east faces
-// UmomYDiffCond        --> Diffusive fluxes for U cells in south and north faces
-// VmomXConvFlux        --> Convective fluxes for V cells in west and east faces
-// VmomYConvFlux        --> Convective fluxes for V cells in south and north faces
-// VmomXDiffCond        --> Diffusive fluxes for V cells in west and east faces
-// VmomYDiffCond        --> Diffusive fluxes for V cells in south and north faces
+uRelaxTM             Relaxation parameter used in u momentum equation (TM: Used in time marching solution only)
+vRelaxTM             Relaxation parameter used in v momentum equation                  ( " )
+scalarRelaxTM        Relaxation parameter used in scalar variable equation             ( " )
 
-// UmomaWest            --> West side coefficients of the U momentum matrix
-// UmomaEast            --> East side coefficients of the U momentum matrix
-// UmomaSouth           --> South side coefficients of the U momentum matrix
-// UmomaNorth           --> North side coefficients of the U momentum matrix
-// UmomaCenter          --> Center coefficients of the U momentum matrix
-// UmomaSource          --> Source coefficients of the U momentum matrix
+pJIResidual          Pressure residual
+UJiResidual          U velocity residual
+VjIResidual          V velocity residual
+ResidualArray[4]     Keeps all form of residuals in the main
 
-// VmomaWest            --> West side coefficients of the V momentum matrix
-// VmomaEast            --> East side coefficients of the V momentum matrix
-// VmomaSouth           --> South side coefficients of the V momentum matrix
-// VmomaNorth           --> North side coefficients of the V momentum matrix
-// VmomaCenter          --> Center coefficients of the V momentum matrix
-// VmomaSource          --> Source coefficients of the V momentum matrix
+nControlPoints       Number of track points
+nBlockCells          Number of blocked cells
+controlPointSaveInterval   Save interval for track points
 
-// PJICorrect           --> Pressure correction values
-// PresCrctWest         --> West side coefficients of the pressure correction matix
-// PresCrctEast         --> West side coefficients of the pressure correction matrix
-// PresCrctSouth        --> South side coefficients of the pressure correction matrix
-// PresCrctNorth        --> North side coefficients of the pressure correction matrix
-// PresCrctCenter       --> Center coefficients of the pressure correction matrix
-// PresCrctSource       --> Source coefficients of the pressure correction matrix
-// PresCrctdJi          --> Coefficient arrays used in the determination of the pressure correction matrix coefficients
-// PresCrctdjI          --> Coefficient arrays used in the determination of the pressure correction matrix coefficients
+BoundaryLeft         Boundary type and magnitude (if necessary) for left boundary
+BoundaryRight        Boundary type and magnitude (if necessary) for right boundary
+BoundaryTop          Boundary type and magnitude (if necessary) for top boundary
+BoundaryBottom       Boundary type and magnitude (if necessary) for bottom boundary
 
-// TimeURelaxPar        --> Relaxation parameters used in the U momentum equation
-// TimeVRelaxPar        --> Relaxation parameters used in the V momentum equation
-// TimeScaRelaxPar      --> Relaxation parameters used in the scalar variable equation
+UmomXConvFlux        Convective fluxes for U cells at West and East faces
+UmomYConvFlux        Convective fluxes for U cells at South and North faces
+VmomXConvFlux        Convective fluxes for V cells at West and East faces
+VmomYConvFlux        Convective fluxes for V cells at South and North faces
 
-// UJi_pse_vel          --> U Pseudo velocity (SIMPLER-Algorithm only)
-// VjI_pse_vel          --> V Pseudo velocity (SIMPLER-Algorithm only)
-// UmomaSource_Pseu     --> Source term for U Pseudo velocity matrix (SIMPLER-Algorithm only)
-// VmomaSource_Pseu     --> Source term for V Pseudo velocity matrix (SIMPLER-Algorithm only)
-// PresWest             --> West side coefficients of the pressure matix (SIMPLER-Algorithm only)
-// PresEast             --> West side coefficients of the pressure matrix (SIMPLER-Algorithm only)
-// PresSouth            --> South side coefficients of the pressure matrix (SIMPLER-Algorithm only)
-// PresNorth            --> North side coefficients of the pressure matrix (SIMPLER-Algorithm only)
-// PresCenter           --> Center coefficients of the pressure matrix (SIMPLER-Algorithm only)
-// PresSource           --> Source coefficients of the pressure matrix (SIMPLER-Algorithm only)
+UmomXDiffCond        Diffusive fluxes for U cells at West and East faces
+UmomYDiffCond        Diffusive fluxes for U cells at South and North faces
+VmomXDiffCond        Diffusive fluxes for V cells at West and East faces
+VmomYDiffCond        Diffusive fluxes for V cells at South and North faces
 
-// PJIpressureOLD       --> Pressure values of previous iteration
-// UJivelocityOLD       --> u-velocity values of previous iteration
-// VjIvelocityOLD       --> v-velocity values of previous iteration
+UmomaWest            West side coefficients of U momentum matrix
+UmomaEast            East side coefficients of U momentum matrix
+UmomaSouth           South side coefficients of U momentum matrix
+UmomaNorth           North side coefficients of U momentum matrix
+UmomaCenter          Center coefficients of U momentum matrix
+UmomaSource          Source coefficients of U momentum matrix
 
-// PJIResidual          --> Pressure residual
-// UJiResidual          --> u-velocity residual
-// VjIResidual          --> v-velocity residual
-// Ujiavrg              --> u-velocity values interpolated for collocated grid arrangement
-// Vjiavrg              --> v-velocity values interpolated for collocated grid arrangement
-// Pjiavrg              --> pressure values interpolated for collocated grid arrangement
-// UjiResidual_avrg     --> u-velocity residual values interpolated for collocated grid arrangement
-// VjiResidual_avrg     --> v-velocity residual values interpolated for collocated grid arrangement
-// PjiResidual_avrg     --> pressure residual values interpolated for collocated grid arrangement
-// Vorticity_ji         --> vorticity values interpolated for collocated grid arrangement
-/****************************************************************************/
+VmomaWest            West side coefficients of V momentum matrix
+VmomaEast            East side coefficients of V momentum matrix
+VmomaSouth           South side coefficients of V momentum matrix
+VmomaNorth           North side coefficients of V momentum matrix
+VmomaCenter          Center coefficients of V momentum matrix
+VmomaSource          Source coefficients of V momentum matrix
+
+PJICorrect           Pressure correction values
+PresCrctWest         West side coefficients of pressure correction matix
+PresCrctEast         West side coefficients of pressure correction matrix
+PresCrctSouth        South side coefficients of pressure correction matrix
+PresCrctNorth        North side coefficients of pressure correction matrix
+PresCrctCenter       Center coefficients of pressure correction matrix
+PresCrctSource       Source coefficients of pressure correction matrix
+PresCrctdJi          Coefficient arrays used in the determination of pressure correction matrix coefficients
+PresCrctdjI          Coefficient arrays used in the determination of pressure correction matrix coefficients
+
+UJi_pseudo           U pseudo velocity                           (SIMPLER algorithm only)
+VjI_pseudo           V pseudo velocity                                    ( " )
+UmomaSource_pseudo   Source term for U pseudo velocity matrix             ( " )
+VmomaSource_pseudo   Source term for V pseudo velocity matrix             ( " )
+PresWest             West side coefficients of pressure matix             ( " )
+PresEast             West side coefficients of pressure matrix            ( " )
+PresSouth            South side coefficients of pressure matrix           ( " )
+PresNorth            North side coefficients of pressure matrix           ( " )
+PresCenter           Center coefficients of pressure matrix               ( " )
+PresSource           Source coefficients of pressure matrix               ( " )
+
+Ujiavrg              U velocity values interpolated for collocated grid arrangement
+Vjiavrg              V velocity values interpolated for collocated grid arrangement
+Pjiavrg              Pressure values interpolated for collocated grid arrangement
+
+UjiResidual_avrg     U velocity residual values interpolated for collocated grid arrangement
+VjiResidual_avrg     V velocity residual values interpolated for collocated grid arrangement
+PjiResidual_avrg     Pressure residual values interpolated for collocated grid arrangement
+Vorticity_ji         Vorticity values interpolated for collocated grid arrangement
+
+************************************************************************************/
+
+
+
+
+/**************************   GLOBAL SOLVER VARIABLES   **************************/
+// These variables are used in the slvGlobals.h file with keyword extern.
+// Therefore all other slv...cpp files can access them.
+
+string fullProblemName;
+
+double density, kinvis;
+
+int numXcells, numYcells;
+
+int Numi, Numj, NumI, NumJ;
+
+int discSchm, solverAlgorithm, solverApproach;
+
+int outerIterMax;
+
+double outerTolerance;
+
+int saveInterval, controlPointSaveInterval;
+
+double timeStep;
+
+bool isTecplot, isRestart, isTransient;
+
+double **pJI, **UJi, **VjI, **ScalarVar;
+
+double pRelax, uRelax, vRelax, scalarRelax;
+
+int nControlPoints, nBlockCells;
+
+double **Xji, **Yji, **XJi, **YJi, **XjI, **YjI, **XJI, **YJI;
+
+double **BoundaryLeft, **BoundaryRight, **BoundaryTop, **BoundaryBottom;
+
+/**********************   END OF GLOBAL SOLVER VARIABLES   ***********************/
+
 
 
 void SolverThread::mainSolver()
 {
    QString message;
 
-   int NumXcells,NumYcells;
-   int Numi,Numj,NumI,NumJ;
-
-   int GlobIte;
-   int SaveInterval;
-   double Ro;
-   double Kinvis;
-   double PresRelax;
-   double UvelRelax;
-   double VvelRelax;
-   double ScalarRelax;
-   double OuterTolerance;
-
-   int DiffSchm;
-   int SolverType;
-   int SolverApproach;
-
-   string RunID;
    double ResidualArray[4];
-   double TimeStep;
-
-   bool isTecplot;
-   bool isRestart;
-   bool isTransient;
-   int nTrackPoints;
-   int trackPointSaveInterval;
-   int nBlockCells;
 
    time_t ComptSecStart;
    time_t ComptSecStop;
    clock_t startTime, endTime;
    double cpu_time_used;
 
-   double** XjicoorCorners;
-   double** YjicoorCorners;
-   double** XJicoorSideFaces;
-   double** YJicoorSideFaces;
-   double** XjIcoorFrontFaces;
-   double** YjIcoorFrontFaces;
-   double** XJIcoorCenter;
-   double** YJIcoorCenter;
+   int** controlPointIndex;
+   int** BlockCellIndex;
 
-   double** PJIpressure;
-   double** UJivelocity;
-   double** VjIvelocity;
-   double** ScalarVar;
+   // Convective flux and diffusive conductance arrays for u momentum equation
+   double** UmomXConvFlux;
+   double** UmomYConvFlux;
+   double** UmomXDiffCond;
+   double** UmomYDiffCond;
 
-   int** TrackPointYX;
-   int** BlockCellCoor;
+   // Convective flux and diffusive conductance arrays for v momentum equation
+   double** VmomXConvFlux;
+   double** VmomYConvFlux;
+   double** VmomXDiffCond;
+   double** VmomYDiffCond;
 
-   /****  BOUNDARY CONDITION VARIABLES    ****/
-   double** BoundaryLeft;
-   double** BoundaryRight;
-   double** BoundaryTop;
-   double** BoundaryBottom;
+   // Convective flux and diffusive conductance arrays for scalar variable equation
+   double** ScalarXConvFlux;
+   double** ScalarYConvFlux;
+   double** ScalarXDiffCond;
+   double** ScalarYDiffCond;
 
-   double ThermalConduct =5 ;
+   // Coefficients of u momentum equation
+   double** UmomaWest;
+   double** UmomaEast;
+   double** UmomaSouth;
+   double** UmomaNorth;
+   double** UmomaCenter;
+   double** UmomaSource;
+
+   // Coefficients of v momentum equation
+   double** VmomaWest;
+   double** VmomaEast;
+   double** VmomaSouth;
+   double** VmomaNorth;
+   double** VmomaCenter;
+   double** VmomaSource;
+
+   // Coefficients of scalar variable conservation equation
+   double** ScalaraWest;
+   double** ScalaraEast;
+   double** ScalaraSouth;
+   double** ScalaraNorth;
+   double** ScalaraCenter;
+   double** ScalaraSource;
+
+   // Coefficients of pressure correction equation
+   double** PJICorrect;
+   double** PresCrctWest;
+   double** PresCrctEast;
+   double** PresCrctSouth;
+   double** PresCrctNorth;
+   double** PresCrctCenter;
+   double** PresCrctSource;
+   double** PresCrctdJi;
+   double** PresCrctdjI;
+
+   // These variables are only used in TIME MARCHING approach
+   double** uRelaxTM;
+   double** vRelaxTM;
+   double** scalarRelaxTM;
+
+   // These variables are only used in SIMPLER Algorithm
+   double** UJi_pseudo;
+   double** VjI_pseudo;
+   double** UmomaSource_pseudo;
+   double** VmomaSource_pseudo;
+   double** PresWest;
+   double** PresEast;
+   double** PresSouth;
+   double** PresNorth;
+   double** PresCenter;
+   double** PresSource;
+
+   // Primary variables of the previous iteration that are used in residual calculation
+   double** pJIOLD;
+   double** UJiOLD;
+   double** VjIOLD;
+
+   // Variables to generate residual plots
+   double** pJIResidual;
+   double** UJiResidual;
+   double** VjIResidual;
+
+   // Variables used in staggered to collocated grid transformation
+   double** Ujiavrg;
+   double** Vjiavrg;
+   double** Pjiavrg;
+   double** UjiResidual_avrg;
+   double** VjiResidual_avrg;
+   double** PjiResidual_avrg;
+   double** Vorticity_ji;
+
+
    int ConvergenceFlag = 0;
    double DivergenceLimit = 100000;
+   
+   double ThermalConduct = 5;  // Not used in this version of the solver
 
-   string Directory;
-   Directory = problem->getCfdFileName();
-   Directory.resize(Directory.length()-4);
+   fullProblemName = problem->getCfdFileName();     // e.g. C:\VFL\Problems\MyProblem.cfd
+   fullProblemName.resize(fullProblemName.length() - 4);  // Get rid of the .cfd extension
 
-   message = QString(Directory.c_str());
+   message = QString(fullProblemName.c_str());
    emit appendOutput(message, Qt::black);
 
    // Timer is started here to calculate the computation time
@@ -222,12 +315,7 @@ void SolverThread::mainSolver()
    startTime = clock();
 
    // Read the input (.INP) file
-   int readFlag = ReadInputFile(XjicoorCorners, YjicoorCorners, NumXcells,  NumYcells, nTrackPoints, nBlockCells,
-                                BoundaryLeft, BoundaryRight, BoundaryTop, BoundaryBottom, PJIpressure, UJivelocity,
-                                VjIvelocity, ScalarVar, TrackPointYX, BlockCellCoor, Ro, Kinvis, GlobIte,  PresRelax,
-                                UvelRelax, VvelRelax, ScalarRelax, Numi, Numj, NumI, NumJ, DiffSchm, SaveInterval,
-                                SolverType, SolverApproach, TimeStep, OuterTolerance, trackPointSaveInterval,
-                                isTecplot, isTransient, isRestart, Directory);
+   int readFlag = ReadInputFile(controlPointIndex, BlockCellIndex);
 
    if (readFlag == -1) {  // Mesh parameter error in the input file.
       emit appendOutput(tr("ERROR: Mesh parameter error in the input file. Solution can not start."), Qt::red);
@@ -239,129 +327,30 @@ void SolverThread::mainSolver()
       return;
    }
 
-   /* Creates the coordinate points that are needed in the staggered
-   arangement other than the coorners of the pressure cells */
-   CoordinateCreater(XjicoorCorners, YjicoorCorners, NumXcells, NumYcells, Numi, Numj, NumI, NumJ, XJicoorSideFaces,
-                     YJicoorSideFaces, XjIcoorFrontFaces, YjIcoorFrontFaces, XJIcoorCenter, YJIcoorCenter);
-
-   /* Convective flux and diffusive conductance arrays for the U momentum equations */
-   double** UmomXConvFlux;
-   double** UmomYConvFlux;
-   double** UmomXDiffCond;
-   double** UmomYDiffCond;
-
-   /* Convective flux and diffusive conductance arrays for the V momentum equations */
-   double** VmomXConvFlux;
-   double** VmomYConvFlux;
-   double** VmomXDiffCond;
-   double** VmomYDiffCond;
-
-   /* Convective flux and diffusive conductance arrays for the Scalar variable equations */
-   double** ScalarXConvFlux;
-   double** ScalarYConvFlux;
-   double** ScalarXDiffCond;
-   double** ScalarYDiffCond;
-
-   /* The coefficients of U momentum equations */
-   double** UmomaWest;
-   double** UmomaEast;
-   double** UmomaSouth;
-   double** UmomaNorth;
-   double** UmomaCenter;
-   double** UmomaSource;
-
-   /* The coefficients of V momentum equations */
-   double** VmomaWest;
-   double** VmomaEast;
-   double** VmomaSouth;
-   double** VmomaNorth;
-   double** VmomaCenter;
-   double** VmomaSource;
-
-   /* The coefficients of V momentum equations */
-   double** ScalaraWest;
-   double** ScalaraEast;
-   double** ScalaraSouth;
-   double** ScalaraNorth;
-   double** ScalaraCenter;
-   double** ScalaraSource;
-
-   /* The coefficients of pressure correction equations */
-   double** PJICorrect;
-   double** PresCrctWest;
-   double** PresCrctEast;
-   double** PresCrctSouth;
-   double** PresCrctNorth;
-   double** PresCrctCenter;
-   double** PresCrctSource;
-   double** PresCrctdJi;
-   double** PresCrctdjI;
-
-   // This variables are only used in TIME MARCHING approach
-   double** TimeURelaxPar;
-   double** TimeVRelaxPar;
-   double** TimeScaRelaxPar;
-
-   //  These variables are only used in SIMPLER ALGORITM
-   double** UJi_pse_vel;
-   double** VjI_pse_vel;
-   double** UmomaSource_Pseu;
-   double** VmomaSource_Pseu;
-   double** PresWest;
-   double** PresEast;
-   double** PresSouth;
-   double** PresNorth;
-   double** PresCenter;
-   double** PresSource;
-
-   /* These variables are used to keep track of the primary
-   variables of the previous iteration which will be used
-   in the residul calculation */
-   double** PJIpressureOLD;
-   double** UJivelocityOLD;
-   double** VjIvelocityOLD;
-
-   /* Memory for the Residual Plots */
-   double** PJIResidual;
-   double** UJiResidual;
-   double** VjIResidual;
-
-   /* These variables are used in staggered to collocated grid transformation */
-   double** Ujiavrg;
-   double** Vjiavrg;
-   double** Pjiavrg;
-   double** UjiResidual_avrg;
-   double** VjiResidual_avrg;
-   double** PjiResidual_avrg;
-   double** Vorticity_ji;
+   // Create coordinate points that are needed in the staggered arangement
+   CoordinateCreater();
 
    TotalMemoryAllocate(UmomXConvFlux, UmomYConvFlux, UmomXDiffCond, UmomYDiffCond, VmomXConvFlux, VmomYConvFlux,
                        VmomXDiffCond, VmomYDiffCond, ScalarXConvFlux, ScalarYConvFlux, ScalarXDiffCond, ScalarYDiffCond,
                        UmomaWest, UmomaEast, UmomaSouth, UmomaNorth, UmomaCenter, UmomaSource, VmomaWest, VmomaEast,
                        VmomaSouth, VmomaNorth, VmomaCenter, VmomaSource, ScalaraWest, ScalaraEast, ScalaraSouth,
                        ScalaraNorth, ScalaraCenter, ScalaraSource, PJICorrect, PresCrctWest, PresCrctEast, PresCrctSouth,
-                       PresCrctNorth, PresCrctCenter,PresCrctSource, PresCrctdJi,PresCrctdjI, TimeURelaxPar, TimeVRelaxPar,
-                       TimeScaRelaxPar, UJi_pse_vel,VjI_pse_vel, UmomaSource_Pseu, VmomaSource_Pseu, PresWest, PresEast,
-                       PresSouth, PresNorth, PresCenter, PresSource, PJIpressureOLD, UJivelocityOLD, VjIvelocityOLD,
-                       PJIResidual, UJiResidual, VjIResidual, Ujiavrg, Vjiavrg, Pjiavrg, UjiResidual_avrg, VjiResidual_avrg,
-                       PjiResidual_avrg, Vorticity_ji, Numj, NumJ, Numi, NumI);
+                       PresCrctNorth, PresCrctCenter,PresCrctSource, PresCrctdJi,PresCrctdjI, uRelaxTM, vRelaxTM,
+                       scalarRelaxTM, UJi_pseudo,VjI_pseudo, UmomaSource_pseudo, VmomaSource_pseudo, PresWest, PresEast,
+                       PresSouth, PresNorth, PresCenter, PresSource, pJIOLD, UJiOLD, VjIOLD,
+                       pJIResidual, UJiResidual, VjIResidual, Ujiavrg, Vjiavrg, Pjiavrg, UjiResidual_avrg, VjiResidual_avrg,
+                       PjiResidual_avrg, Vorticity_ji);
 
-   /* This function calculates the relaxation parameters used in
-   the U & V momentum equations. */
-   InitilizeRelaxationParameters(Numi, Numj, NumI, NumJ, TimeURelaxPar, TimeVRelaxPar, TimeScaRelaxPar,
-                                 SolverApproach, UvelRelax, VvelRelax, ScalarRelax);
+   // This function calculates the relaxation parameters used in U & V momentum equations.
+   InitilizeRelaxationParameters(uRelaxTM, vRelaxTM, scalarRelaxTM);
 
-   /* This function apply the Specified boundary condition to the domain
-   if there exist any     SPECIFIED VELOCITY [1/1] = Means to apply a
-   specified boundary condition only one modification is needed
-   and it is here */
-   SpecVelBoundCond (BoundaryLeft, BoundaryRight, BoundaryTop, BoundaryBottom, Numj, NumJ, Numi, NumI,
-                     UJivelocity, VjIvelocity);
+   // This function applies the specified velocity BC. This is the only place this kind of BC is treated.
+   SpecifiedVelBC ();
 
 
-   // This part is not used in the current version for scalar variable solution
-   for (int I=0;I<NumI;I++) {
-      ScalarVar[0][I]=5;         // TEMPORAL VALUE
+   // This part is not used in the current version of the solver.
+   for (int I=0; I<NumI; I++) {
+      ScalarVar[0][I] = 5;         // TEMPORAL VALUE
    }
 
    // If everything goes fine upto here than the solution is really started.
@@ -369,265 +358,248 @@ void SolverThread::mainSolver()
    sendRunStatus(tr("RUNNING"));
 
 
+
+
    //*****************************************************
-   // Global iterations start here
+   // Outer iterations start here
    //*****************************************************
 
-   int OutIte;
-   for (OutIte=1; OutIte < GlobIte+1; OutIte++) {
-      /* Calculates the convective fluxes for U momentum equations */
-      ConvFluxCalcUmom(UmomXConvFlux, UmomYConvFlux, UJivelocity, VjIvelocity, Numi, Numj, NumI, NumJ, Ro);
+   int outerIter;
+   for (outerIter = 1; outerIter <= outerIterMax; outerIter++) {
 
-      /* Calculates the convective fluxes for V momentum equations */
-      ConvFluxCalcVmom(VmomXConvFlux, VmomYConvFlux, UJivelocity, VjIvelocity, Numi, Numj, NumI, NumJ, Ro);
+      // Calculate convective fluxes for u and v momentum equations.
+      ConvFluxCalcUmom(UmomXConvFlux, UmomYConvFlux);
+      ConvFluxCalcVmom(VmomXConvFlux, VmomYConvFlux);
 
-      /* This subroutine is not being used in this version */
-      /* Calculates the convective fluxes for Scalar variable equations */
-      ConvFluxCalcScalar(ScalarXConvFlux, ScalarYConvFlux, UJivelocity, VjIvelocity, Numi, Numj, NumI, NumJ, Ro);
+      // Calculate convective fluxes for scalar variable equation.
+      // NOTE: Scalar variable solution is not fully performed in this version of the solver.
+      ConvFluxCalcScalar(ScalarXConvFlux, ScalarYConvFlux);
 
-      /* Calculates the diffusive fluxes for U momentum equations */
-      DiffConducCalcUmom(UmomXDiffCond, UmomYDiffCond, XJicoorSideFaces, YJicoorSideFaces, Numi, Numj, NumI, NumJ, Kinvis);
+      // Calculate diffusive fluxes for u and v momentum equations.
+      DiffConducCalcUmom(UmomXDiffCond, UmomYDiffCond);
+      DiffConducCalcVmom(VmomXDiffCond, VmomYDiffCond);
 
-      /* Calculates the diffusive fluxes for V momentum equations */
-      DiffConducCalcVmom(VmomXDiffCond, VmomYDiffCond, XjIcoorFrontFaces, YjIcoorFrontFaces, Numi, Numj, NumI, NumJ, Kinvis);
+      // Calculate diffusive fluxes for scalar variable equation.
+      // NOTE: Scalar variable solution is not fully performed in this version of the solver.
+      DiffConducCalcScalar(ScalarXDiffCond, ScalarYDiffCond, ThermalConduct);
 
-      /* This subroutine is not being used in this version */
-      /* Calculates the diffusive fluxes for Scalar Variable equations */
-      DiffConducCalcScalar(ScalarXDiffCond, ScalarYDiffCond, XJIcoorCenter, YJIcoorCenter, Numi, Numj, NumI, NumJ, ThermalConduct);
-
-      /* This function forms the coefficient matrix for the U momentum equation */
-      UmomMatrixFormer(UmomaWest, UmomaEast, UmomaSouth, UmomaNorth, UmomaCenter, UmomaSource, Numi,
-                       NumJ, UmomXConvFlux, UmomYConvFlux, YjIcoorFrontFaces, XjIcoorFrontFaces,
-                       YjicoorCorners, YJicoorSideFaces, UmomXDiffCond, UmomYDiffCond, PJIpressure,
-                       UJivelocity, Kinvis, DiffSchm, TimeURelaxPar, BoundaryLeft, BoundaryRight,
-                       BoundaryTop, BoundaryBottom, Ro, XJIcoorCenter, TimeStep, isTransient,
-                       nBlockCells, BlockCellCoor);
-
-      /* This function forms the coefficient matrix for the V momentum equation */
+      // Form the coefficient matrix for U and V momentum equations
+      UmomMatrixFormer(UmomaWest, UmomaEast, UmomaSouth, UmomaNorth, UmomaCenter, UmomaSource,
+                       UmomXConvFlux, UmomYConvFlux, UmomXDiffCond, UmomYDiffCond,
+                       uRelaxTM, BlockCellIndex);
       VmomMatrixFormer(VmomaWest, VmomaEast, VmomaSouth, VmomaNorth, VmomaCenter, VmomaSource,
-                       NumI, Numj, VmomXConvFlux, VmomYConvFlux, YJicoorSideFaces, XJicoorSideFaces,
-                       XjicoorCorners, XjIcoorFrontFaces, VmomXDiffCond, VmomYDiffCond, PJIpressure,
-                       VjIvelocity, Kinvis, DiffSchm, TimeVRelaxPar, BoundaryLeft, BoundaryRight,
-                       BoundaryTop, BoundaryBottom, Ro, YJIcoorCenter, TimeStep, isTransient,
-                       nBlockCells,BlockCellCoor);
+                       VmomXConvFlux, VmomYConvFlux, VmomXDiffCond, VmomYDiffCond,
+                       vRelaxTM, BlockCellIndex);
 
-      if (SolverApproach == 2) {  // If Time Marching Approach is selected
-         /* This function calculates the relaxation parameters that will
-         be used in the time marching procedure */
-         CalTimeRelaxationForMomentumEqn(Ro, Numi, Numj, NumI, NumJ, TimeURelaxPar, TimeVRelaxPar,
-                                         UmomaCenter, VmomaCenter, XJIcoorCenter, YJIcoorCenter,
-                                         XjicoorCorners, YjicoorCorners, TimeStep);
+
+
+
+      if (solverApproach == 2) {  // For TIME MARCHING solution
+         // Calculate relaxation parameters that will be used in time marching solution
+         CalTimeRelaxationForMomentumEqn(uRelaxTM, vRelaxTM, UmomaCenter, VmomaCenter);
       }
 
-      if (SolverType == 2) {  // If the SIMPLER Algorithm is selected
-         /* This function calculates the Pseudo-Velocities in X direction */
-         PseudoUcalculator(UmomaWest, UmomaEast, UmomaSouth, UmomaNorth, UmomaCenter, UmomaSource,
-                           Numi, NumJ, PJIpressure, YjicoorCorners, UJivelocity, UJi_pse_vel,
-                           UmomaSource_Pseu);
 
-         /* This function calculates the Pseudo-Velocities in Y direction */
-         PseudoVcalculator(VmomaWest, VmomaEast, VmomaSouth, VmomaNorth, VmomaCenter, VmomaSource,
-                           NumI, Numj, PJIpressure, XjicoorCorners, VjIvelocity, VjI_pse_vel,
-                           VmomaSource_Pseu);    // REFERANS // MEMORY LEACAG
 
-         /* This part keeps the pressure values that are going to be
-         corrected (changed) in the next step, for residual calculation */
-         PressureForResidual(PJIpressure, PJIpressureOLD, NumI, NumJ);
 
-         /* Although the name of the function is pressure corrector
-         at this step this function forms the pressure equation not pressure
-         correction equation */
-         PressureCorrectionMatrix(PJIpressure, PresWest, PresEast, PresSouth, PresNorth, PresCenter,
-                                  PresSource, Numi, Numj, NumI, NumJ, UmomaCenter, VmomaCenter,
-                                  XjicoorCorners, YjicoorCorners, UJi_pse_vel, VjI_pse_vel, PresCrctdJi,
-                                  PresCrctdjI, UmomaWest, UmomaEast, UmomaSouth, UmomaNorth, VmomaWest,
-                                  VmomaEast, VmomaSouth, VmomaNorth, SolverType, Ro, 0, BoundaryLeft,
-                                  BoundaryRight, BoundaryTop, BoundaryBottom);
+      /***********************************************************************
+        This part is for SIMPLER algorithm only
+      ***********************************************************************/
+      if (solverAlgorithm == 2) {
+         // Calculate pseudo velocities in x and y directions.
+         pseudoUcalculator(UmomaWest, UmomaEast, UmomaSouth, UmomaNorth, UmomaCenter, UmomaSource,
+                           UJi_pseudo, UmomaSource_pseudo);
+         pseudoVcalculator(VmomaWest, VmomaEast, VmomaSouth, VmomaNorth, VmomaCenter, VmomaSource,
+                           VjI_pseudo, VmomaSource_pseudo);
 
-         /* This part solves the Pressure matrix */
-         LineTDMASolver(PresNorth, PresSouth, PresWest, PresEast, PresCenter, PresSource, NumI, NumJ,
-                        PJIpressure, 4, 1);
+         // Take a copy of pressure values of the current iteration for residual calculation.
+         copyPressure(pJIOLD);
 
-      	/* This function updates the source coefficients in U&V momentum
-         equations since the pressure values are updated in the previous step. */
+         // Calculate coefficients of pressure equation (NOT pressure correction equation. Function name is misleading)
+         // The last argument is 0, which means that we're working on pressure, NOT pressure correction.
+         PressureCorrectionMatrix(PresWest, PresEast, PresSouth, PresNorth, PresCenter, PresSource,
+                                  UmomaCenter, VmomaCenter, UJi_pseudo, VjI_pseudo,
+                                  PresCrctdJi, PresCrctdjI,
+                                  UmomaWest, UmomaEast, UmomaSouth, UmomaNorth, VmomaWest, VmomaEast, VmomaSouth, VmomaNorth, 0);
 
-         SourceModifierSimpler(UmomaSource, VmomaSource, PJIpressure, YjicoorCorners, XjicoorCorners,
-                               Numi, Numj, NumI, NumJ, UmomaSource_Pseu, VmomaSource_Pseu);
+         // Solve pressure matrix
+         LineTDMASolver(PresNorth, PresSouth, PresWest, PresEast, PresCenter, PresSource, NumI, NumJ, pJI, 4, 1);
+
+         // Update source coefficients of u and v momentum equations.
+         SourceModifierSimpler(UmomaSource, VmomaSource, UmomaSource_pseudo, VmomaSource_pseudo);
       }
 
-      /* This part solves the U momentum matrix */
-      LineTDMASolver(UmomaNorth, UmomaSouth, UmomaWest, UmomaEast, UmomaCenter, UmomaSource, Numi, NumJ,
-                     UJivelocity, 4, 1);
 
-      /* This part solves the V momentum matrix */
-      LineTDMASolver(VmomaNorth, VmomaSouth, VmomaWest, VmomaEast, VmomaCenter, VmomaSource, NumI, Numj,
-                     VjIvelocity, 4, 2);
 
-      /* OUTLET BC (part 1/4)
-      To impliment an outlet BC four modifications should be done and
-      this part is one of them */
-      OutletBC(BoundaryRight, BoundaryLeft, BoundaryTop, BoundaryBottom, UJivelocity, VjIvelocity,
-               Numi, Numj, NumI, NumJ);
 
-      /* This function forms the coefficient matrix for the pressure
-      correction equation */
-      PressureCorrectionMatrix(PJICorrect, PresCrctWest, PresCrctEast, PresCrctSouth, PresCrctNorth,
-                               PresCrctCenter, PresCrctSource, Numi, Numj, NumI, NumJ, UmomaCenter,
-                               VmomaCenter, XjicoorCorners, YjicoorCorners, UJivelocity, VjIvelocity,
-                               PresCrctdJi, PresCrctdjI, UmomaWest, UmomaEast, UmomaSouth, UmomaNorth,
-                               VmomaWest, VmomaEast, VmomaSouth, VmomaNorth, SolverType, Ro, 1,
-                               BoundaryLeft, BoundaryRight, BoundaryTop, BoundaryBottom);
+      // Solve u momentum matrix
+      LineTDMASolver(UmomaNorth, UmomaSouth, UmomaWest, UmomaEast, UmomaCenter, UmomaSource, Numi, NumJ, UJi, 4, 1);
 
-      /* This part solves the pressure correction matrix */
-      LineTDMASolver(PresCrctNorth, PresCrctSouth, PresCrctWest, PresCrctEast, PresCrctCenter,
-                     PresCrctSource, NumI, NumJ, PJICorrect, 4, 1);
+      // Solve v momentum matrix
+      LineTDMASolver(VmomaNorth, VmomaSouth, VmomaWest, VmomaEast, VmomaCenter, VmomaSource, NumI, Numj, VjI, 4, 2);
 
-	  if (SolverType == 1 || SolverType == 3) {  // If the SIMPLE algorithm is selected
-         /* This part keeps the pressure values that are going to be
-         corrected (changed) in the next step, for residual calculation */
-         PressureForResidual(PJIpressure, PJIpressureOLD, NumI, NumJ);
+      // Outlet BC (Part 1/4)
+      OutletBC();
 
-         /* Pressure is corrected at this step using the calculated pressure
-         correctors. This is performed only in the SIMPLE & SIMPLEC Algorithms*/
-         PressureCorrector(PJIpressure, PJICorrect, NumJ, NumI, PresRelax);
+      // Calculate coefficients of pressure correction equation
+      // The last argument is 1, which means that we're working on pressure correction, NOT pressure.
+      PressureCorrectionMatrix(PresCrctWest, PresCrctEast, PresCrctSouth, PresCrctNorth,
+                               PresCrctCenter, PresCrctSource, UmomaCenter, VmomaCenter,
+                               UJi, VjI, PresCrctdJi, PresCrctdjI, UmomaWest, UmomaEast, UmomaSouth, UmomaNorth,
+                               VmomaWest, VmomaEast, VmomaSouth, VmomaNorth, 1);
+
+      // Solve pressure correction matrix
+      LineTDMASolver(PresCrctNorth, PresCrctSouth, PresCrctWest, PresCrctEast, PresCrctCenter, PresCrctSource, NumI, NumJ, PJICorrect, 4, 1);
+
+
+
+
+      /***********************************************************************
+        This part is for SIMPLE and SIMPLEC algorithms only
+      ***********************************************************************/
+      if (solverAlgorithm == 1 || solverAlgorithm == 3) {
+         // Take a copy of pressure values of the current iteration for residual calculation.
+         copyPressure(pJIOLD);
+
+         // Perform pressure correction
+         PressureCorrector(PJICorrect);
       }
 
-      /* This part keeps the velocity values that are going to be
-      corrected (changed) in the next step, for residual calculation */
-      VelocityForResidual(UJivelocity, VjIvelocity, UJivelocityOLD, VjIvelocityOLD, Numi, Numj, NumI, NumJ);
 
-      /* Velocity is corrected at this step. Also the velocity residuals
-      are calculated at this step */
-      VelocityCorrector(UJivelocity, VjIvelocity, PJICorrect, PresCrctdJi, PresCrctdjI, NumJ, NumI, Numj, Numi);
 
-      /* This part calculates the residual changes of all primary
-      variables and determines the convergence and divergence criteria */
-      CalculateResidual(PJIpressure, UJivelocity, VjIvelocity, PJIpressureOLD, UJivelocityOLD, VjIvelocityOLD,
-                        Numi, Numj, NumI, NumJ, OutIte, GlobIte, PresCrctSource, OuterTolerance, DivergenceLimit,
-                        ConvergenceFlag, ResidualArray, PJIResidual, UJiResidual, VjIResidual);
 
+      // Take a copy of velocity values of the current iteration for residual calculation.
+      copyVelocity(UJiOLD, VjIOLD);
+
+      // Perform velocity correction and calculate velocity residuals
+      VelocityCorrector(PJICorrect, PresCrctdJi, PresCrctdjI);
+
+
+
+
+      // Calculate residual changes of all primary variables and perform convergence/divergence check
+      CalculateResidual(pJIOLD, UJiOLD, VjIOLD,
+                        PresCrctSource, DivergenceLimit,
+                        ConvergenceFlag, ResidualArray, pJIResidual, UJiResidual, VjIResidual);
+
+
+
+
+      // NOTE: Scalar variable equation is NOT solved in this version of the code.
       ScalarVarMatrixFormer(ScalaraWest, ScalaraEast,ScalaraSouth, ScalaraNorth, ScalaraCenter, ScalaraSource,
-                            NumI, NumJ, ScalarXConvFlux, ScalarYConvFlux, YjicoorCorners, XjicoorCorners, YJIcoorCenter,
-                            XJIcoorCenter, YjIcoorFrontFaces, XJicoorSideFaces, ScalarXDiffCond, ScalarYDiffCond,
-                            ScalarVar, ThermalConduct, DiffSchm, TimeScaRelaxPar, BoundaryLeft, BoundaryRight,
-                            BoundaryTop, BoundaryBottom);
+                            ScalarXConvFlux, ScalarYConvFlux, ScalarXDiffCond, ScalarYDiffCond,
+                            ScalarVar, ThermalConduct, scalarRelaxTM);
 
-      // OUTLET TEMPERATURE BOUNDARY CONDTION PART [2/2]
-      for(int J=1;J<NumJ-1;J++) {
+      // Outlet BC for scalar variable (Part 2/2)
+      for(int J=1; J<NumJ-1; J++) {
          ScalarVar[J][NumI-1] = ScalarVar[J][NumI-2];
       }
 
-      // Write DAT and OUT files
-      if (OutIte%SaveInterval == 0) {
-         if (OutIte>0) {
-            /* This function creates Tecplot files for the given interval */
-            WriteDATfile(OutIte, Directory, UJivelocity, VjIvelocity, PJIpressure, XjicoorCorners, YjicoorCorners,
-                         Numi, Numj, isTecplot, PJIResidual, UJiResidual, VjIResidual, XjIcoorFrontFaces,
-                         YJicoorSideFaces, BoundaryTop, BoundaryBottom, BoundaryLeft, BoundaryRight, Ujiavrg,
-                         Vjiavrg, Pjiavrg, UjiResidual_avrg, VjiResidual_avrg, PjiResidual_avrg, Vorticity_ji,
-                         nBlockCells, BlockCellCoor);
 
-            WriteOUTfile(PJIpressure, UJivelocity, VjIvelocity, NumI, NumJ, Numi, Numj, Directory, OutIte);
+
+
+      // Write Tecplot (DAT) and OUT files
+      if (outerIter%saveInterval == 0) {
+         if (outerIter > 0) {
+            writeDATfile(pJIResidual, UJiResidual, VjIResidual, Ujiavrg,
+                         Vjiavrg, Pjiavrg, UjiResidual_avrg, VjiResidual_avrg, PjiResidual_avrg, Vorticity_ji,
+                         BlockCellIndex, outerIter);
+
+            writeOUTfile(outerIter);
          }
       }
 
-      if (ConvergenceFlag == 1) {
-         WriteDATfile(OutIte, Directory, UJivelocity, VjIvelocity, PJIpressure, XjicoorCorners, YjicoorCorners,
-                      Numi, Numj, isTecplot, PJIResidual, UJiResidual, VjIResidual, XjIcoorFrontFaces,
-                      YJicoorSideFaces, BoundaryTop, BoundaryBottom, BoundaryLeft, BoundaryRight, Ujiavrg,
-                      Vjiavrg, Pjiavrg, UjiResidual_avrg, VjiResidual_avrg, PjiResidual_avrg, Vorticity_ji,
-                      nBlockCells, BlockCellCoor);
 
-         message = QString(tr("The solution converged at iteration %1.")).arg(OutIte);
+
+
+      /***********************************************************************
+        Check for convergence.
+      ***********************************************************************/
+      if (ConvergenceFlag == 1) {  // Solution is converged.
+         // If convergence is achieved create another DAT file.
+         // Cuneyt: It is possible that this DAT file is already created above.
+         writeDATfile(pJIResidual, UJiResidual, VjIResidual, Ujiavrg,
+                      Vjiavrg, Pjiavrg, UjiResidual_avrg, VjiResidual_avrg, PjiResidual_avrg, Vorticity_ji,
+                      BlockCellIndex, outerIter);
+
+         message = QString(tr("The solution converged at iteration %1.")).arg(outerIter);
          emit appendOutput(message, Qt::black);
          emit sendRunStatus(QString(tr("CONVERGED")));
+         emit sendIteration(outerIter);
 
-         emit sendIteration(OutIte);
+         break;  // Break outer iteration loop.
 
-         break;
-      }
-
-      if (ConvergenceFlag == 2) {
-         message = QString(tr("The solution diverged at iteration %1.")).arg(OutIte);
+      } else if (ConvergenceFlag == 2) {  // Solution is diverged
+         message = QString(tr("The solution diverged at iteration %1.")).arg(outerIter);
          emit appendOutput(message, Qt::black);
          emit sendRunStatus(QString(tr("DIVERGED")));
+         emit sendIteration(outerIter);
 
-         emit sendIteration(OutIte);
+         break;  // Break outer iteration loop.
+      }
 
+
+      // If Pause button is clicked
+      mutex.lock();
+      if (pauseSolveThread) {
+         message = QString(tr("Solution is paused at iteration %1.")).arg(outerIter);
+         emit appendOutput(message, Qt::black);
+         continueSolveThread.wait(&mutex);
+      }
+      mutex.unlock();
+
+      // If Terminate button is clicked
+      mutex.lock();
+      if (terminateSolveThread) {
+         mutex.unlock();
+         message = QString(tr("Solution is terminated at iteration %1.")).arg(outerIter);
+         emit appendOutput(message, Qt::black);
          break;
       }
+      mutex.unlock();
 
-	  mutex.lock();
-	  if (pauseSolveThread) {
 
-        message = QString(tr("Solution is paused at iteration %1.")).arg(OutIte);
-        emit appendOutput(message, Qt::black);
-        //emit sendRunStatus(QString(tr("PAUSED")));
+      emit sendIteration(outerIter);
 
-        continueSolveThread.wait(&mutex);
-	  }
-	  mutex.unlock();
+      
+      /***********************************************************************
+       Update control point data
+      ***********************************************************************/
+      // Cuneyt: Is the following if statement inefficient ?
+      if (outerIter == 1 || outerIter%problem->getControlPointUpdateInterval() == 0) {
+         // Send residual data to plot.
+         emit sendResidual(outerIter, ResidualArray[2], ResidualArray[3], ResidualArray[0], ResidualArray[1]);
 
-	  mutex.lock();
-     if (terminateSolveThread) {
-        mutex.unlock();
-        message = QString(tr("Solution is terminated at iteration %1.")).arg(OutIte);
-        emit appendOutput(message, Qt::black);
-        //emit sendRunStatus(QString(tr("TERMINATED")));
-        break;
-	  }
-	  mutex.unlock();
-
-     emit sendIteration(OutIte);
-	  // cuneyt: Asagidaki if biraz verimsiz mi oldu?
-     if (OutIte == 1 || OutIte%problem->getControlPointUpdateInterval() == 0) {
-          // Send residual data to plot.
-          emit sendResidual(OutIte, ResidualArray[2], ResidualArray[3], ResidualArray[0], ResidualArray[1]);
-
-          // Send control (track) point data to plot.
-          //if (nTrackPoints > 0) {
-
-              //int ID = 0; 
-              //emit sendControlPointData(OutIte, UJivelocity[TrackPointYX[ID][0]][TrackPointYX[ID][1]],
-              //	                                VjIvelocity[TrackPointYX[ID][0]][TrackPointYX[ID][1]],
-              //                                  PJIpressure[TrackPointYX[ID][0]][TrackPointYX[ID][1]]);
-
-              // Asagidaki control point datasi gonderme kisminin multi-blok destegi eksik.
-              for(int ID=0; ID<nTrackPoints; ID++) {
-                 problem->mesh->blocks[0].controlPointData[ID][0] = UJivelocity[TrackPointYX[ID][0]][TrackPointYX[ID][1]];
-                 problem->mesh->blocks[0].controlPointData[ID][1] = VjIvelocity[TrackPointYX[ID][0]][TrackPointYX[ID][1]];
-                 problem->mesh->blocks[0].controlPointData[ID][2] = PJIpressure[TrackPointYX[ID][0]][TrackPointYX[ID][1]];
-              }
-
-              emit sendControlPointData(OutIte);
-		  //}
+         for(int id=0; id<nControlPoints; id++) {
+            problem->mesh->blocks[0].controlPointData[id][0] = UJi[controlPointIndex[id][0]][controlPointIndex[id][1]];
+            problem->mesh->blocks[0].controlPointData[id][1] = VjI[controlPointIndex[id][0]][controlPointIndex[id][1]];
+            problem->mesh->blocks[0].controlPointData[id][2] = pJI[controlPointIndex[id][0]][controlPointIndex[id][1]];
+         }
+         emit sendControlPointData(outerIter);
       }
 
-      //   qApp->processEvents();
-   
-   }  // End of the global iterations (OutIte loop)
+   }  // End of the outer iterations (outIter loop)
 
-   if (OutIte == GlobIte + 1) {
-      message = QString(tr("Iterations are done. Convergence is not achieved."));
+
+   if (outerIter == outerIterMax + 1) {
+      message = QString(tr("Iterations are done but convergence is not achieved."));
       emit appendOutput(message, Qt::black);
       emit sendRunStatus(QString(tr("DONE")));
    }
+
 
    // Stop computation timer
    ComptSecStop = time (NULL);
    endTime = clock();
    cpu_time_used = ((double) (endTime - startTime)) / CLOCKS_PER_SEC;
 
-   TotalMemoryDeAllocate(XjicoorCorners, YjicoorCorners, XJicoorSideFaces, YJicoorSideFaces, XjIcoorFrontFaces, YjIcoorFrontFaces,
-                         XJIcoorCenter, YJIcoorCenter, PJIpressure, UJivelocity, VjIvelocity, ScalarVar, PJIpressureOLD,
-                         UJivelocityOLD, VjIvelocityOLD, UmomXConvFlux, UmomYConvFlux, UmomXDiffCond, UmomYDiffCond, VmomXConvFlux,
+
+   TotalMemoryDeAllocate(pJIOLD, UJiOLD, VjIOLD, UmomXConvFlux, UmomYConvFlux, UmomXDiffCond, UmomYDiffCond, VmomXConvFlux,
                          VmomYConvFlux, VmomXDiffCond, VmomYDiffCond, UmomaWest, UmomaEast, UmomaSouth, UmomaNorth, UmomaCenter,
                          UmomaSource, VmomaWest, VmomaEast, VmomaSouth, VmomaNorth, VmomaCenter, VmomaSource, PJICorrect, PresCrctWest,
                          PresCrctEast, PresCrctSouth, PresCrctNorth, PresCrctCenter, PresCrctSource, PresCrctdJi, PresCrctdjI,
-                         UJi_pse_vel,VjI_pse_vel, UmomaSource_Pseu, VmomaSource_Pseu, PresWest, PresEast, PresSouth, PresNorth,
-                         PresCenter, PresSource, TimeURelaxPar, TimeVRelaxPar, Ujiavrg, Vjiavrg, Pjiavrg, UjiResidual_avrg,
-                         VjiResidual_avrg, PjiResidual_avrg, Vorticity_ji, Numj, NumJ, Numi, NumI, nTrackPoints, nBlockCells,
-                         TrackPointYX, BlockCellCoor);
+                         UJi_pseudo,VjI_pseudo, UmomaSource_pseudo, VmomaSource_pseudo, PresWest, PresEast, PresSouth, PresNorth,
+                         PresCenter, PresSource, uRelaxTM, vRelaxTM, Ujiavrg, Vjiavrg, Pjiavrg, UjiResidual_avrg,
+                         VjiResidual_avrg, PjiResidual_avrg, Vorticity_ji);
 
-}  // End of mainSolver()
-
+}  // End of function mainSolver()

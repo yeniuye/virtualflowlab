@@ -1,39 +1,31 @@
-/***************************************************************/
-/*                  TIME MARCHING APPROACH                     */
-/***************************************************************/
-
 #include "slvFunctions.h"
 
-/*****************************************************************************/
-/* This function calculates the U and V velocity relaxation parameters.      */
-/* Actually what is calculated here is not relaxation parameters but the     */
-/* unsteady terms in the transient momentum equations,these two have similar */
-/* effects on the finite difference equation. So let sat the relaxation      */
-/* parameters.In the ITERATIVE approach relaxation                           */
-/* parameters are same in every node in the domain and do not change         */
-/* with iteration. On the other hand in the TIME MARCHING approach           */
-/* the relaxation parameters is different from node to node and              */
-/* changing with time (iteration).                                           */
-/*****************************************************************************/
 
-void CalTimeRelaxationForMomentumEqn (double Ro,int Numi,int Numj,int NumI,
-int NumJ,double** &TimeURelaxPar,double** &TimeVRelaxPar,double** UmomaCenter,
-double** VmomaCenter,double** XJIcoorCenter,double** YJIcoorCenter,
-double** XjicoorCorners,double** YjicoorCorners,double TimeStep)
+
+
+void CalTimeRelaxationForMomentumEqn (double** &uRelaxTM, double** &vRelaxTM, double** UmomaCenter, double** VmomaCenter)
 {
-   for(int J=1;J<NumJ-1;J++) {
-     for(int i=1;i<Numi-1;i++) {
-        TimeURelaxPar[J][i] = UmomaCenter[J][i]
-        / (UmomaCenter[J][i] + Ro * (YjicoorCorners[J][i]-YjicoorCorners[J-1][i]) *
-        (XJIcoorCenter[J][i+1] - XJIcoorCenter[J][i]) / TimeStep );
+   /*****************************************************************************
+    This function calculates u and v velocity relaxation parameters for a
+    TIME MARCHING solution. Actually what is calculated here are not exactly
+    relaxation parameters, but unsteady terms of the transient momentum
+    equations. But these two are used in a similar in the solution, therefore
+    the name relaxation is used. In an ITERATIVE solution relaxation parameters
+    are the same at every node of the flow domain and do not change during the
+    iterative solution. On the other hand in a TIME MARCHING solution relaxation
+    parameters are different from node to node and they change with time, i.e.
+    during the iterations.
+   *****************************************************************************/
+
+   for(int J=1; J<NumJ-1; J++) {
+     for(int i=1; i<Numi-1; i++) {
+        uRelaxTM[J][i] = UmomaCenter[J][i] / (UmomaCenter[J][i] + density * (Yji[J][i]-Yji[J-1][i]) * (XJI[J][i+1] - XJI[J][i]) / timeStep);
      }
    }
 
-   for(int j=1;j<Numj-1;j++) {
-      for(int I=1;I<NumI-1;I++) {
-         TimeVRelaxPar[j][I] = VmomaCenter[j][I] /
-         ( VmomaCenter[j][I] + Ro * (YJIcoorCenter[j+1][I]- YJIcoorCenter[j][I]) *
-         (XjicoorCorners[j][I]-XjicoorCorners[j][I-1]) / TimeStep );
+   for(int j=1; j<Numj-1; j++) {
+      for(int I=1; I<NumI-1; I++) {
+         vRelaxTM[j][I] = VmomaCenter[j][I] / (VmomaCenter[j][I] + density * (YJI[j+1][I]- YJI[j][I]) * (Xji[j][I] - Xji[j][I-1]) / timeStep);
       }
    }
 } // End of function CalTimeRelaxationForMomentumEqn()
@@ -41,50 +33,52 @@ double** XjicoorCorners,double** YjicoorCorners,double TimeStep)
 
 
 
-/* This function inilizes the relaxation parameters for U and V momentum
-equations. It is performed once in the run.
-And this function initilize the velocity relaxation values determined by the
-user to the whole computational domain for ITERATIVE approach.
-And it inilize these parameters to 0.9 in TIME MARCHING approach */
-
-void InitilizeRelaxationParameters(int Numi,int Numj,int NumI,int NumJ,
-double** &TimeURelaxPar,double** &TimeVRelaxPar,double** &TimeScaRelaxPar,int SolverApproach,
-double UvelRelax,double VvelRelax,double ScalarRelax)
+void InitilizeRelaxationParameters(double** &uRelaxTM,double** &vRelaxTM,double** &scalarRelaxTM)
 {
-   if (SolverApproach == 1) {                // ITERATIVE APPROACH
-      for(int J=1;J<NumJ-1;J++) {
-         for(int i=1;i<Numi-1;i++) {
-            TimeURelaxPar[J][i] = UvelRelax;
-         }
-      }
-      for(int j=1;j<Numj-1;j++) {
-         for(int I=1;I<NumI-1;I++) {
-            TimeVRelaxPar[j][I] = VvelRelax;
-         }
-      }
-      for(int J=1;J<NumJ-1;J++) {
-         for(int I=1;I<NumI-1;I++) {
-            TimeScaRelaxPar[J][I] = ScalarRelax;
-         }
-      }
-   } else if (SolverApproach == 2) {           // TIME MARCHING APPROACH
-      /* These 0.9 values as relaxation parameters are used only once in the first
-      global iteration the relaxation parameters for the following iterations
-      will be calculated by the code */
+   /*****************************************************************************
+    This function inilizes relaxation parameters of u and v momentum equations.
+    It is performed only once in a run. Relaxation values determined by the
+    user are assigned to the whole computational domain for ITERATIVE approach.
+    For TIME MARCHING approach valocity relaxation is initialized to 0.9.
+   *****************************************************************************/
 
-      for(int J=1;J<NumJ-1;J++) {
-         for(int i=1;i<Numi-1;i++) {
-           TimeURelaxPar[J][i] = 0.9;  // for Simplec time marching approach if it is taken as 1 division by zero error occurs
+   if (solverApproach == 1) {                // ITERATIVE solution
+      for(int J=1; J<NumJ-1; J++) {
+         for(int i=1; i<Numi-1; i++) {
+            uRelaxTM[J][i] = uRelax;
          }
       }
-      for(int j=1;j<Numj-1;j++) {
-         for(int I=1;I<NumI-1;I++) {
-            TimeVRelaxPar[j][I] = 0.9; // for Simplec time marching approach if it is taken as 1 division by zero error occurs
+      for(int j=1; j<Numj-1; j++) {
+         for(int I=1; I<NumI-1; I++) {
+            vRelaxTM[j][I] = vRelax;
          }
       }
-      for(int J=1;J<NumJ-1;J++) {
-         for(int I=1;I<NumI-1;I++) {
-            TimeScaRelaxPar[J][I] = 0.9;
+      for(int J=1; J<NumJ-1; J++) {
+         for(int I=1; I<NumI-1; I++) {
+            scalarRelaxTM[J][I] = scalarRelax;
+         }
+      }
+   } else if (solverApproach == 2) {         // TIME MARCHING solution
+      // The following 0.9 values as relaxation parameters are used only in the first
+      // global iteration. New values will be calculated by the code for the other
+      // iteratios, i.e. time steps.
+
+      // For a TIME MARCHING solution using SIMPLEC if 1.0 instead of 0.9 is used
+      // division by zero occurs.
+
+      for(int J=1; J<NumJ-1; J++) {
+         for(int i=1; i<Numi-1; i++) {
+           uRelaxTM[J][i] = 0.9;
+         }
+      }
+      for(int j=1; j<Numj-1; j++) {
+         for(int I=1; I<NumI-1; I++) {
+            vRelaxTM[j][I] = 0.9;
+         }
+      }
+      for(int J=1; J<NumJ-1; J++) {
+         for(int I=1; I<NumI-1; I++) {
+            scalarRelaxTM[J][I] = 0.9;
          }
       }
    }
