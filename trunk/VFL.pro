@@ -17,10 +17,10 @@ HEADERS += guiCode/mainWindow.h \
     guiCode/guiConvergencePlot.h \
     guiCode/guiControlPointPlot.h \
     guiCode/guiBlock.h \
+    guiCode/guiSolverThread.h \
     fparserCode/fptypes.h \
     fparserCode/fparser.h \
     fparserCode/fpconfig.h \
-    solverCode/slvSolverThread.h \
     solverCode/slvFunctions.h
 FORMS += forms/mainWindow.ui
 SOURCES += guiCode/main.cpp \
@@ -43,11 +43,11 @@ SOURCES += guiCode/main.cpp \
     guiCode/guiBlockFacePage.cpp \
     guiCode/guiBlock.cpp \
     guiCode/guiBCICPage.cpp \
+    guiCode/guiSolverThread.cpp \
     solverCode/slvVmomMatrixFormer.cpp \
     solverCode/slvUmomMatrixFormer.cpp \
     solverCode/slvTotalMemoryAllocate.cpp \
     solverCode/slvTimeMarchingApproach.cpp \
-    solverCode/slvSolverThread.cpp \
     solverCode/slvScalarVariableMatrixFormer.cpp \
     solverCode/slvResidualCalculator.cpp \
     solverCode/slvReadInputFile.cpp \
