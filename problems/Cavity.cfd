@@ -1,16 +1,16 @@
 This file is created by Virtual Flow Lab. It may get corrupt if you modify it outside Virtual Flow Lab.
 SECTION GEOMETRY**********************************
 4
-0  1  -1 -1 2  
+0  1  
 0.0000000    0.0000000    
 1.0000000    0.0000000    
-1  1  -1 -1 2  
+1  1  
 1.0000000    0.0000000    
 1.0000000    1.0000000    
-2  1  -1 -1 2  
+2  1  
 1.0000000    1.0000000    
 0.0000000    1.0000000    
-3  1  -1 -1 2  
+3  1  
 0.0000000    1.0000000    
 0.0000000    0.0000000    
 SECTION BLOCKFACE*********************************
@@ -26,13 +26,13 @@ SECTION BCIC**************************************
 1   1  |0                   |0                   |                    |
 2   1  |1                   |0                   |                    |
 3   1  |0                   |0                   |                    |
-      |0                   |0                   |0                   |
+       |0                   |0                   |0                   |
 SECTION PARAMETERS********************************
 17 
 Scheme                                  2
 Discretization                          0
 Solution strategy                       1
-(Pseudo) time step                      0.001
+Time step                               0.001
 Kinematic viscosity (m2/s)              0.01
 Density (kg/m3)                         1
 u velocity relaxation                   0.5
@@ -44,7 +44,7 @@ Save interval                           3000
 Control point update interval           10
 Convergence tolerance of outer iters.   1e-10
 Time dependent flow?                    0
-Create Tecplot files?                   1
+Create DAT files?                       1
 Restart from a previous solution?       0
 SECTION MESHPOINTS********************************
 0  100   100   

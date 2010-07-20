@@ -26,19 +26,24 @@ void mainWindow::readCfdFile()
 
    cfdFile.open(problem->getCfdFileName().c_str(), ios::in);
 
-   // Read the file header
+   // Read one line file header
    cfdFile.ignore(256, '\n');
+
+
 
    // Read SECTION GEOMETRY
    cfdFile.ignore(256, '\n'); // Read and ignore the section title
-   cfdFile >> dummyInt;	      // Read total number of primitives drawn
+   cfdFile >> dummyInt;       // Read total number of primitives drawn
+   
    problem->mesh->setnPrimitives(dummyInt);
+
    for (i = 0; i < problem->mesh->getnPrimitives(); i++) {
-      cfdFile >> p;         // Primitive number
+      cfdFile >> p;           // Primitive number
       cfdFile >> dummyInt;    // Primitive type
+   
       if (dummyInt == 1) {    // This primitive is a LINE
          
-         cfdFile.ignore(256, '\n');		// Ignore the rest of this line for LINE type
+         cfdFile.ignore(256, '\n');   // Finish reading the current line
          
          problem->mesh->primitives[p].setType(LINE);
          problem->mesh->primitives[p].setNumberOfEnteredPoints(2);
@@ -46,7 +51,7 @@ void mainWindow::readCfdFile()
 
          dummyCoor = new float[2*2];
 
-         cfdFile >> dummyCoor[0];  // Coordinates of the points of this LINE
+         cfdFile >> dummyCoor[0];     // Coordinates of the points of this LINE
          cfdFile >> dummyCoor[1];
          cfdFile >> dummyCoor[2];
          cfdFile >> dummyCoor[3];
@@ -59,21 +64,22 @@ void mainWindow::readCfdFile()
 
          problem->mesh->primitives[p].allocateDefPointCoor();
          problem->mesh->primitives[p].setLineDefPointCoor();
+      
       } else if (dummyInt == 2) {   // This primitive is an ARC
          
-         cfdFile >> dummyInt2;      // First control parameter is about using "3 points" vs. "two points and center"
-         if (dummyInt2 == 1)        // First control parameter is about using "3 points" vs. "two points and center"
+         cfdFile >> dummyInt2;      // 1st control parameter determines whether the arc is created using "3 points" or "two points and center"
+         if (dummyInt2 == 1)
             problem->mesh->primitives[p].setUsesCenter(TRUE);
          else
             problem->mesh->primitives[p].setUsesCenter(FALSE);
 
-         cfdFile >> dummyInt3;      // Second control parameter is about being drawn CW vs. CCW
+         cfdFile >> dummyInt3;      // 2nd control parameter determines whether the arcis drawn CW or CCW
          if (dummyInt3 == 1)	
             problem->mesh->primitives[p].setIsCW(TRUE);
          else
             problem->mesh->primitives[p].setIsCW(FALSE);
          
-         cfdFile.ignore(256, '\n'); // Ignore the rest of this line for ARC type
+         cfdFile.ignore(256, '\n'); // Finish reading the current line
 
          problem->mesh->primitives[p].setType(ARC);
          problem->mesh->primitives[p].setNumberOfEnteredPoints(3);
@@ -96,9 +102,10 @@ void mainWindow::readCfdFile()
 
          problem->mesh->primitives[p].allocateDefPointCoor();
          problem->mesh->primitives[p].calculateArcDefPointCoor();
+
       } else if (dummyInt == 3) {		// This primitive is a curve defined by a FUNCTION
          
-         cfdFile.ignore(256, '\n');		// Ignore the rest of this line for FUNCTION type
+         cfdFile.ignore(256, '\n');		// Finish reading the current line
 
          problem->mesh->primitives[p].setType(FUNCTION);
          problem->mesh->primitives[p].setNumberOfEnteredPoints(2);
@@ -106,7 +113,6 @@ void mainWindow::readCfdFile()
 
          cfdFile.get(c41,41);			// Function that defines the curve
          problem->mesh->primitives[p].setFunction(QString(c41).trimmed().toStdString());
-
 
          dummyCoor = new float[2*2];
 
@@ -126,9 +132,11 @@ void mainWindow::readCfdFile()
       }
       problem->mesh->primitives[p].setIsDeleted(FALSE);
    }
-   
+
+
+
    // Read SECTION BLOCKFACE
-   cfdFile.ignore(256, '\n');  // Finish the remainings of the last read line
+   cfdFile.ignore(256, '\n');  // Finish the remainings of the last line read
    cfdFile.ignore(256, '\n');  // Read and ignore the section title
    cfdFile >> dummyInt;        // Number of blocks
    problem->mesh->setnBlocks(dummyInt);
@@ -171,87 +179,102 @@ void mainWindow::readCfdFile()
    }
 
 
+
    // Read SECTION MESH
-   cfdFile.ignore(256, '\n');  // Finish the remainings of the last read line
+   cfdFile.ignore(256, '\n');  // Finish the remainings of the last line read
    cfdFile.ignore(256, '\n');  // Read and ignore the section title
    cfdFile >> dummyBool;       // 0: No mesh is generated (or things are changed after generating a mesh and that mesh can not be used), 1: Mesh is generated
    problem->mesh->setIsMeshGenerated(dummyBool);
-   cfdFile >> dummyInt;        // Mesh generation algorithm (0: TFI Linear, 1: ...      // Cuneyt: Complete this list)
+   cfdFile >> dummyInt;        // Mesh generation algorithm (0: TFI Linear, 1: Laplace)
    problem->setMeshGenerationAlgorithm(dummyInt);
 
 
+
    // Read SECTION BCIC
-   cfdFile.ignore(256, '\n');    // Finish the remainings of the last read line
-   cfdFile.ignore(256, '\n');    // Read and ignore the section title
+   cfdFile.ignore(256, '\n');     // Finish the remainings of the last read line
+   cfdFile.ignore(256, '\n');     // Read and ignore the section title
+
    for (i = 0; i < problem->mesh->getnPrimitives(); i++) {
-      cfdFile >> p;              // Primitive number
-      cfdFile >> dummyInt;       // Boundary type (1: wall, 2: inflow, 3: outflow)
+      cfdFile >> p;               // Primitive number
+      
+      cfdFile >> dummyInt;        // Boundary type (1: wall, 2: inflow, 3: outflow)
       problem->mesh->primitives[p].setBCtype(dummyInt);
-      cfdFile.ignore(3);         // Read two spaces and 1 | character
-      cfdFile.get(c21,21);       // BC for u
+      
+      cfdFile.ignore(3);          // Read two spaces and one | character
+      
+      cfdFile.get(c21,21);        // BC for u
       problem->mesh->primitives[p].setBCstring(0, QString(c21).trimmed().toStdString());
-      cfdFile.ignore(1);         // Read one | character
-      cfdFile.get(c21,21);       // BC for v
+      
+      cfdFile.ignore(1);          // Read one | character
+      
+      cfdFile.get(c21,21);        // BC for v
       problem->mesh->primitives[p].setBCstring(1, QString(c21).trimmed().toStdString());
-      cfdFile.ignore(1);         // Read one | character
-      cfdFile.get(c21,21);       // BC for p
+      
+      cfdFile.ignore(1);          // Read one | character
+      
+      cfdFile.get(c21,21);        // BC for p
       problem->mesh->primitives[p].setBCstring(2, QString(c21).trimmed().toStdString());
-      cfdFile.ignore(256, '\n');		// Ignore the rest of the line
+      
+      cfdFile.ignore(256, '\n');  // Ignore the rest of the line
    }
-   cfdFile.ignore(6);													// Read 6 spaces
-   cfdFile.ignore(1);													// Read one | character
-   cfdFile.get(c21,21);  uICedit->setText(QString(c21).trimmed());		// IC for u
-   cfdFile.ignore(1);													// Read one | character
-   cfdFile.get(c21,21);  vICedit->setText(QString(c21).trimmed());		// IC for v
-   cfdFile.ignore(1);													// Read one | character
-   cfdFile.get(c21,21);  pICedit->setText(QString(c21).trimmed());		// IC for p
+
+   cfdFile.ignore(7);                                                // Read 7 spaces
+   cfdFile.ignore(1);                                                // Read one | character
+   cfdFile.get(c21,21);  uICedit->setText(QString(c21).trimmed());   // IC for u
+   cfdFile.ignore(1);                                                // Read one | character
+   cfdFile.get(c21,21);  vICedit->setText(QString(c21).trimmed());   // IC for v
+   cfdFile.ignore(1);                                                // Read one | character
+   cfdFile.get(c21,21);  pICedit->setText(QString(c21).trimmed());   // IC for p
+
 
 
    // Read SECTION PARAMETERS
-   cfdFile.ignore(256, '\n');  // Finish the remainings of the last read line
+   cfdFile.ignore(256, '\n');  // Finish the remainings of the last line read
    cfdFile.ignore(256, '\n');  // Read and ignore the section title
+   
    cfdFile >> dummyInt;        // Number of parameters
+   
    problem->setNparameters(dummyInt);
-   cfdFile.ignore(256, '\n');  // Ignore the remaining of the last read line
+   cfdFile.ignore(256, '\n');  // Ignore the remaining of the last line read
 
-   cfdFile.get(c41,41);        // Read 40 character parameter title
-   cfdFile >> dummyInt;        // Read scheme (0: SIMPLE, 1: SIMPLEC, 2: SIMPLER)
+   cfdFile.get(c41,41);                                   // Read 40 character parameter title
+   cfdFile >> dummyInt;                                   // Read scheme (0: SIMPLE, 1: SIMPLEC, 2: SIMPLER)
    schemeCombo->setCurrentIndex(dummyInt);
    cfdFile.ignore(256, '\n');
 
    cfdFile.get(c41,41);
-   cfdFile >> dummyInt;        // Read discretization (0: Central, 1: Upwind, 2: Hybrid, 3: Power law)
+   cfdFile >> dummyInt;                                   // Read discretization (0: Central, 1: Upwind, 2: Hybrid, 3: Power law)
    discretizationCombo->setCurrentIndex(dummyInt);
    cfdFile.ignore(256, '\n');
 
    cfdFile.get(c41,41);
-   cfdFile >> dummyInt;        // Read solution strategy (0: Iterative, 1: time marching)
+   cfdFile >> dummyInt;                                   // Read solution strategy (0: Iterative, 1: time marching)
    strategyCombo->setCurrentIndex(dummyInt);
    cfdFile.ignore(256, '\n');
 
    cfdFile.get(c41,41);
    cfdFile.getline(c256, 256, '\n');
-   timeStepEdit->setText(QString(c256).trimmed());     // (Pseudo) time step
+   timeStepEdit->setText(QString(c256).trimmed());        // Time step
 
    cfdFile.get(c41,41);
    cfdFile.getline(c256, 256, '\n');
-   kinvisEdit->setText(QString(c256).trimmed());       // Read kinematic viscosity
+   kinvisEdit->setText(QString(c256).trimmed());          // Read kinematic viscosity
 
    cfdFile.get(c41,41);
    cfdFile.getline(c256, 256, '\n');
-   densityEdit->setText(QString(c256).trimmed());      // Read density
+   densityEdit->setText(QString(c256).trimmed());         // Read density
 
    cfdFile.get(c41,41);
    cfdFile.getline(c256, 256, '\n');
-   uRelaxationEdit->setText(QString(c256).trimmed());  // Read u relaxation
+   uRelaxationEdit->setText(QString(c256).trimmed());     // Read u relaxation
 
    cfdFile.get(c41,41);
    cfdFile.getline(c256, 256, '\n');
-   vRelaxationEdit->setText(QString(c256).trimmed());  // Read v relaxation
+   vRelaxationEdit->setText(QString(c256).trimmed());     // Read v relaxation
 
    cfdFile.get(c41,41);
    cfdFile.getline(c256, 256, '\n');
-   pRelaxationEdit->setText(QString(c256).trimmed());  // Read p relaxation
+   pRelaxationEdit->setText(QString(c256).trimmed());     // Read p relaxation
 
    cfdFile.get(c41,41);
    cfdFile.getline(c256, 256, '\n');
@@ -259,7 +282,7 @@ void mainWindow::readCfdFile()
 
    cfdFile.get(c41,41);
    cfdFile.getline(c256, 256, '\n');
-   maxOuterIterEdit->setText(QString(c256).trimmed());  // Read max. number of outer iterations
+   maxOuterIterEdit->setText(QString(c256).trimmed());    // Read max. number of outer iterations
 
    cfdFile.get(c41,41);
    cfdFile.getline(c256, 256, '\n');
@@ -274,23 +297,27 @@ void mainWindow::readCfdFile()
    outerToleranceEdit->setText(QString(c256).trimmed());  // Read convergence tolerance of outer iterations
 
    cfdFile.get(c41,41);
-   cfdFile >> dummyBool;                               // Read the flag for time dependency
+   cfdFile >> dummyBool;                                  // Read the flag for time dependency
    timeDependentCheck->setChecked(dummyBool);
    cfdFile.ignore(256, '\n');
 
    cfdFile.get(c41,41);
-   cfdFile >> dummyBool;                               // Read the flag for Tecplot output generation
+   cfdFile >> dummyBool;                                  // Read the flag for DAT file generation
    DATfileCheck->setChecked(dummyBool);
    cfdFile.ignore(256, '\n');
 
    cfdFile.get(c41,41);
-   cfdFile >> dummyBool;                               // Read the flag for restarting from a previous result
+   cfdFile >> dummyBool;                                  // Read the flag for restarting from a previous result
    restartCheck->setChecked(dummyBool);
-   
+
+
+
    // Read SECTION MESHPOINTS
-   cfdFile.ignore(256, '\n');  // Finish the remainings of the last read line
+   cfdFile.ignore(256, '\n');  // Finish the remainings of the last line read
    cfdFile.ignore(256, '\n');  // Read and ignore the section title
+   
    if (problem->mesh->getIsMeshGenerated()) {
+      
       for (k=0; k<problem->mesh->getnBlocks(); k++) {
          cfdFile >> b;         // Block number
          cfdFile >> dummyInt;  // Number of points in the x direction
@@ -300,12 +327,14 @@ void mainWindow::readCfdFile()
 
          problem->mesh->blocks[b].coordinates = NULL;
          delete[] problem->mesh->blocks[b].coordinates;   // Cuneyt: Make sure that this really deletes everything.
+         
          problem->mesh->blocks[b].coordinates = new float[2 * problem->mesh->blocks[b].getnXpoints() * problem->mesh->blocks[b].getnYpoints()];
 
-         // Cuneyt: This is NOT the correct place for the following 3 lines.
+         // Cuneyt: This is NOT the correct place for the following 4 lines.
          problem->mesh->blocks[b].isCellBlocked = new int[(problem->mesh->blocks[b].getnXpoints()-1)*(problem->mesh->blocks[b].getnYpoints()-1)];
-         for(i=0; i<(problem->mesh->blocks[b].getnXpoints()-1)*(problem->mesh->blocks[b].getnYpoints()-1); i++)
+         for(i=0; i<(problem->mesh->blocks[b].getnXpoints() - 1)*(problem->mesh->blocks[b].getnYpoints() - 1); i++) {
             problem->mesh->blocks[b].isCellBlocked[i] = 0;   // Mark all the cells as NOT blocked.
+         }
 
          for (j=0; j<problem->mesh->blocks[b].getnYpoints(); j++)
          {
@@ -320,15 +349,19 @@ void mainWindow::readCfdFile()
    }
 
 
+
    // Read SECTION CONTROLPOINTS
-   cfdFile.ignore(256, '\n');  // Finish the remainings of the last read line
+   cfdFile.ignore(256, '\n');  // Finish the remainings of the last line read
    cfdFile.ignore(256, '\n');  // Read and ignore the section title
+   
    if (problem->mesh->getIsMeshGenerated()) {
+
       for (k=0; k<problem->mesh->getnBlocks(); k++) {
          cfdFile >> b;         // Block number
          cfdFile >> dummyInt;  // Number of control points of this block
          problem->mesh->blocks[b].setnControlPoints(dummyInt);
          cfdFile.ignore(256, '\n');  // Finish the remainings of the last read line
+
          for(i=0; i<dummyInt; i++) {
             cfdFile >> dummyInt2;
             problem->mesh->blocks[b].controlPoints[i] = dummyInt2;
@@ -338,8 +371,10 @@ void mainWindow::readCfdFile()
    }
 
 
+
    // Read SECTION BLOCKEDCELLS
    cfdFile.ignore(256, '\n');    // Read and ignore the section title
+   
    if (problem->mesh->getIsMeshGenerated()) {
       for (k=0; k<problem->mesh->getnBlocks(); k++) {
          cfdFile >> b;           // Block number
@@ -369,7 +404,7 @@ void mainWindow::readCfdFile()
       problem->mesh->allocateFaceData();
       problem->mesh->setFacePrimitives();
       problem->mesh->calculateNumberOfBoundaryPointsOnFaces();
-      problem->mesh->isFacePrimitiveOrderingCorrect(); // Cuneyt: If a CFD file is written before creating a mesh, this line will give unnecessary warnings.
+      problem->mesh->isFacePrimitiveOrderingCorrect();   // Cuneyt: If a CFD file is written before creating a mesh, this line will give unnecessary warnings.
    }
 
    cfdFile.close();
@@ -397,50 +432,62 @@ void mainWindow::writeCfdFile()
 
    // Write SECTION GEOMETRY
    cfdFile << "SECTION GEOMETRY**********************************" << "\n";
+   
    cfdFile << problem->mesh->getnPrimitives() << "\n";   // Total number of primitives drawn
+   
    for (p = 0; p < MAX_PRIMITIVES; p++) {
-      if (problem->mesh->primitives[p].getIsDeleted())  continue;
-        cfdFile << left << setw(3) << p;       // Primitive number
+   
+      if (problem->mesh->primitives[p].getIsDeleted()) {
+         continue;   // Go to the next primitive if this one is marked as deleted.
+      }
+      
+      cfdFile << left << setw(3) << p;                 // Primitive number
 
       if (problem->mesh->primitives[p].getType() == LINE) {
-         cfdFile << left << setw(3) << "1";    // Primitive type (1 means LINE)
-         cfdFile << left << setw(3) << "-1";   // First control parameter is always -1 for LINE
-         cfdFile << left << setw(3) << "-1";   // Second control parameter is always -1 for LINE
-         cfdFile << left << setw(3) << "2"  << "\n";   // Line has 2 points entered by the user
+         cfdFile << left << setw(3) << "1" << "\n";    // Primitive type (1 means LINE)
          
-         dummyCoor = problem->mesh->primitives[p].getEnteredPointCoor();           // Cuneyt: Is there a problem here ?
-         cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[0];  // Coordinates of these two points
+         dummyCoor = problem->mesh->primitives[p].getEnteredPointCoor();   // Cuneyt: Is there a problem here ?
+         
+         cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[0];   // Coordinates of line's 2 points
          cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[1] << "\n";
          cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[2];
          cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[3] << "\n";
+
       } else if (problem->mesh->primitives[p].getType() == ARC) {
-         cfdFile << left << setw(3) << "2";    // Primitive type (2 means ARC)
-         if (problem->mesh->primitives[p].getUsesCenter())   // First control parameter is about using "3 points" vs. "two points and center"
+      
+         cfdFile << left << setw(3) << "2";            // Primitive type (2 means ARC)
+
+         if (problem->mesh->primitives[p].getUsesCenter()) {  // 1st control parameter determines whether "3 points" or "two points and center" is used
             cfdFile << left << setw(3) << "1";
-         else
+         } else {
             cfdFile << left << setw(3) << "2";
-         if (problem->mesh->primitives[p].getIsCW())   // Second control parameter is about being drawn CW vs. CCW
+         }
+
+         if (problem->mesh->primitives[p].getIsCW()) {        // 2nd control parameter determines whether the arc is drawn CW or CCW
             cfdFile << left << setw(3) << "1";
-         else
+         } else {
             cfdFile << setw(3) << "2";
-         cfdFile << "3"  << "\n";   // Arc has three points entered by the user
+         }
+
+         cfdFile << "\n";
+
          dummyCoor = problem->mesh->primitives[p].getEnteredPointCoor();   // Cuneyt: Is there a problem here ?
-         cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[0];   // Coordinates of these three points
+         
+         cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[0];    // Coordinates of arc's 3 points
          cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[1] << "\n";
          cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[2];
          cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[3] << "\n";
          cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[4];
          cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[5] << "\n";
+
       } else if (problem->mesh->primitives[p].getType() == FUNCTION) {
-         cfdFile << left << setw(3) << "3";    // Primitive type (3 means FUNCTION)
-         cfdFile << left << setw(3) << "-1";   // First control parameter is always -1 for FUNCTION
-         cfdFile << left << setw(3) << "-1";   // Second control parameter is always -1 for FUNCTION
-         cfdFile << left << setw(3) << "2"  << "\n";   // Function has 2 points entered by the user
+         cfdFile << left << setw(3) << "3" << "\n";;    // Primitive type (3 means FUNCTION)
          
-         cfdFile << problem->mesh->primitives[p].getFunction() << "\n";
+         cfdFile << problem->mesh->primitives[p].getFunction() << "\n";    // Write the function as a string.
 
          dummyCoor = problem->mesh->primitives[p].getEnteredPointCoor();   // Cuneyt: Is there a problem here ?
-         cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[0];   // Coordinates of these two points
+
+         cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[0];   // Coordinates of function-defined-curve's 2 points.
          cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[1] << "\n";
          cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[2];
          cfdFile << left << fixed << setw(13) << setprecision(7) << dummyCoor[3] << "\n";
@@ -449,13 +496,22 @@ void mainWindow::writeCfdFile()
 
    // Write SECTION BLOCKFACE
    cfdFile << "SECTION BLOCKFACE*********************************" << "\n";
+   
    cfdFile << problem->mesh->getnBlocks() << "\n";   // Number of blocks
+   
    for (p = 0; p < MAX_PRIMITIVES; p++) {
-      if (problem->mesh->primitives[p].getIsDeleted())  continue;
+      
+      if (problem->mesh->primitives[p].getIsDeleted()) {
+         continue;   // Go to the next primitive if this one is marked as deleted.
+      }
+
       cfdFile << left << setw(4) << p;               // Primitive number
+      
       cfdFile << left << setw(3) << problem->mesh->primitives[p].getIsThereSecondBlock();  // 1: Primitive is attached to two blocks, 0: Primitive is attached to one block.
+      
       dummyIntPointer = problem->mesh->primitives[p].getAttachedBlock();
       dummyCharPointer = problem->mesh->primitives[p].getAttachedFace();
+
       cfdFile << left << setw(3) << dummyIntPointer[0];   // 1st block that this primitive is connected to. Default is 0
       cfdFile << left << setw(3) << dummyIntPointer[1];   // 2nd block that this primitive is connected to. Default is 0
       cfdFile << left << setw(3) << dummyCharPointer[0];  // Face of the 1st block that this primitive is connected to. Default is A
@@ -465,36 +521,53 @@ void mainWindow::writeCfdFile()
       cfdFile << left << setw(7) << setprecision(4) << problem->mesh->primitives[p].getClusterCoeff() << "\n";   // Cluster coefficient
    }
 
+
+
    // Write SECTION MESH
    cfdFile << "SECTION MESH**************************************" << "\n";
+   
    cfdFile << left << setw(3) << problem->mesh->getIsMeshGenerated();            // 0: No mesh is generated (or things are changed after generating a mesh and that mesh can not be used), 1: Mesh is generated
-   cfdFile << left << setw(3) << problem->getMeshGenerationAlgorithm() << "\n";  // 0: TFI Linear, 1: ...   // Cuneyt: Complete this list
+   cfdFile << left << setw(3) << problem->getMeshGenerationAlgorithm() << "\n";  // 0: TFI Linear, 1: Laplace
 
    // Cuneyt: When an algorithm other than TFI is implemented values of "min iter, max iter, tolerance, weight factor" parameters should be added here.
 
+
+
    // Write SECTION BCIC
    cfdFile << "SECTION BCIC**************************************" << "\n";
+
    for (p = 0; p < MAX_PRIMITIVES; p++) {
-      if (problem->mesh->primitives[p].getIsDeleted())  continue;
-      cfdFile << left << setw(4) << p;   // Primitive number
-      cfdFile << left << setw(3) << problem->mesh->primitives[p].getBCtype();   // Boundary type (1: wall, 2: inflow, 3: outflow)
+
+      if (problem->mesh->primitives[p].getIsDeleted()) {
+         continue;   // Go to the next primitive if this one is marked as deleted.
+      }
+
+      cfdFile << left << setw(4) << p;                                           // Primitive number
+      cfdFile << left << setw(3) << problem->mesh->primitives[p].getBCtype();    // Boundary type (1: wall, 2: inflow, 3: outflow)
+      
       dummyStringPointer = problem->mesh->primitives[p].getBCstring();
-      cfdFile << "|" << left << setw(20) << dummyStringPointer[0];              // BC for u
-      cfdFile << "|" << left << setw(20) << dummyStringPointer[1];              // BC for v
-      cfdFile << "|" << left << setw(20) << dummyStringPointer[2] << "|\n";     // BC for p
+      
+      cfdFile << "|" << left << setw(20) << dummyStringPointer[0];               // BC for u
+      cfdFile << "|" << left << setw(20) << dummyStringPointer[1];               // BC for v
+      cfdFile << "|" << left << setw(20) << dummyStringPointer[2] << "|\n";      // BC for p
    }
-   cfdFile << "      ";   // Just for alignment
-   cfdFile << "|" << left << setw(20) << uICedit->text().toStdString();           // IC for u
-   cfdFile << "|" << left << setw(20) << vICedit->text().toStdString();           // IC for v
-   cfdFile << "|" << left << setw(20) << pICedit->text().toStdString() << "|\n";  // IC for p
+
+   cfdFile << "       ";                                                         // Space for alignment
+   cfdFile << "|" << left << setw(20) << uICedit->text().toStdString();          // IC for u
+   cfdFile << "|" << left << setw(20) << vICedit->text().toStdString();          // IC for v
+   cfdFile << "|" << left << setw(20) << pICedit->text().toStdString() << "|\n"; // IC for p
+
+
 
    // Write SECTION PARAMETERS
    cfdFile << "SECTION PARAMETERS********************************" << "\n";
+   
    cfdFile << "17 \n";   // Cuneyt: problem->getNparameters() << "\n";
+   
    cfdFile << "Scheme                                  " << schemeCombo->currentIndex() << "\n";
    cfdFile << "Discretization                          " << discretizationCombo->currentIndex() << "\n";
    cfdFile << "Solution strategy                       " << strategyCombo->currentIndex() << "\n";
-   cfdFile << "(Pseudo) time step                      " << timeStepEdit->text().toStdString() << "\n";
+   cfdFile << "Time step                               " << timeStepEdit->text().toStdString() << "\n";
    cfdFile << "Kinematic viscosity (m2/s)              " << kinvisEdit->text().toStdString() << "\n";
    cfdFile << "Density (kg/m3)                         " << densityEdit->text().toStdString() << "\n";
    cfdFile << "u velocity relaxation                   " << uRelaxationEdit->text().toStdString() << "\n";
@@ -508,22 +581,25 @@ void mainWindow::writeCfdFile()
    cfdFile << "Control point update interval           " << controlPointUpdateIntervalEdit->text().toStdString() << "\n";
    cfdFile << "Convergence tolerance of outer iters.   " << outerToleranceEdit->text().toStdString() << "\n";
    cfdFile << "Time dependent flow?                    " << timeDependentCheck->isChecked() << "\n";
-   cfdFile << "Create Tecplot files?                   " << DATfileCheck->isChecked() << "\n";
+   cfdFile << "Create DAT files?                       " << DATfileCheck->isChecked() << "\n";
    cfdFile << "Restart from a previous solution?       " << restartCheck->isChecked() << "\n";
+
+
 
    // Write SECTION MESHPOINTS
    cfdFile << "SECTION MESHPOINTS********************************" << "\n";
+   
    if (problem->mesh->getIsMeshGenerated()) {
       for (int b=0; b<problem->mesh->getnBlocks(); b++) {
+         
          cfdFile << setw(3) << b << setw(6) << problem->mesh->blocks[b].getnXpoints() << setw(6) << problem->mesh->blocks[b].getnYpoints() << "\n";  // Block number, number of points in x direction, number of points in y direction
-         for (int j=0; j<problem->mesh->blocks[b].getnYpoints(); j++)
-         {
-            for (int i=0; i<problem->mesh->blocks[b].getnXpoints(); i++)
-            {
+         
+         for (int j=0; j<problem->mesh->blocks[b].getnYpoints(); j++) {
+            for (int i=0; i<problem->mesh->blocks[b].getnXpoints(); i++) {
                k = i + j * problem->mesh->blocks[b].getnXpoints();
                cfdFile << left << setw(13) << setprecision(7)
-                                          << problem->mesh->blocks[b].coordinates[2*k] << "\t"
-                                        << left << setw(13) << setprecision(7)
+                                           << problem->mesh->blocks[b].coordinates[2*k] << "\t"
+                                           << left << setw(13) << setprecision(7)
                                            << problem->mesh->blocks[b].coordinates[2*k+1] << "\n";
             }
          }
@@ -531,31 +607,40 @@ void mainWindow::writeCfdFile()
    }
 
 
+
    // Write SECTION CONTROLPOINTS
    cfdFile << "SECTION CONTROLPOINTS*****************************" << "\n";
+   
    for (int b=0; b<problem->mesh->getnBlocks(); b++) {
       cfdFile << setw(4) << b << setw(4)
-               << problem->mesh->blocks[b].getnControlPoints() << "\n";   // Block number and # of control points of this block
-      for(int i = 0; i < problem->mesh->blocks[b].getnControlPoints(); i++)
+              << problem->mesh->blocks[b].getnControlPoints() << "\n";   // Block number and # of control points of this block
+      
+      for(int i = 0; i < problem->mesh->blocks[b].getnControlPoints(); i++) {
          cfdFile << problem->mesh->blocks[b].controlPoints[i] << "\n";
+      }
    }
+
 
 
    // Write SECTION BLOCKEDCELLS
    cfdFile << "SECTION BLOCKEDCELLS*****************************" << "\n";
+
    for (int b=0; b<problem->mesh->getnBlocks(); b++) {
       cfdFile << setw(4) << b << setw(4)
-               << problem->mesh->blocks[b].getnBlockedCells() << "\n";   // Block number and # of blocked cells of this block
+              << problem->mesh->blocks[b].getnBlockedCells() << "\n";   // Block number and # of blocked cells of this block
+      
       int nX = problem->mesh->blocks[b].getnXpoints();   // Shortcut (# of points in x direction)
       int nY = problem->mesh->blocks[b].getnYpoints();   // Shortcut (# of points in y direction)
-      int nCell = (nX-1)*(nY-1);   //   Shortcut (# of cells)
+      int nCell = (nX-1)*(nY-1);                         // Shortcut (# of cells)
+      
       for(int i = 0; i < nCell; i++) {
-         if (problem->mesh->blocks[b].isCellBlocked[i] == 1)
+         if (problem->mesh->blocks[b].isCellBlocked[i] == 1) {
             cfdFile << i << "\n";
+         }
       }
    }
 
-   // Cuneyt: A message such as "cfdFile is wirten" should be provided.
+   // Cuneyt: A message such as "CFD file is writen." should be provided.
    cfdFile.close();
 }  // End of function writeCfdFile()
 
@@ -566,7 +651,7 @@ void mainWindow::writeInputFile()
 {
    // Creates the .inp file which is read by the flow solver.
    
-   // Cuneyt: Multi-blcok support of this function is not checked.
+   // Cuneyt: Multi-block support of this function is not checked.
 
    int i, j, k, b, p, counter;
    int *dummyList;
@@ -608,18 +693,27 @@ void mainWindow::writeInputFile()
    inputFile << "SECTION BC****************************************" << "\n";
    for (b = 0; b < problem->mesh->getnBlocks(); b++) {
       inputFile << setw(3) << b << "\n";    // Block number
+   
       for (i = 0; i < 4; i++) {  // Face counter
+         
          counter = 0;  // Counter for the nodes on the face
+
          k = problem->mesh->blocks[b].faces[i].getnPrimitives();
          inputFile << left << k << "\n";
          dummyList  = problem->mesh->blocks[b].faces[i].getOrderedList();
+
          for (j = 0; j < k; j++) {
             p = dummyList[j];
             inputFile << left << setw(4) << problem->mesh->primitives[p].getBCtype();
+            
             inputFile << left << setw(6) << counter;	// First node number of this primitive (Starts from zero)
+            
             counter = counter + problem->mesh->primitives[p].getNumberOfPoints() - 1;
+            
             inputFile << left << setw(6) << counter << "\n";	// First node number of this primitive.
+            
             strPointer = problem->mesh->primitives[p].getBCstring();
+            
             inputFile << strPointer[0] << " \n";  // u BC of this primitive
             inputFile << strPointer[1] << " \n";  // v BC of this primitive
             inputFile << strPointer[2] << " \n";  // p BC of this primitive
@@ -633,7 +727,7 @@ void mainWindow::writeInputFile()
       inputFile << left << setw(20) << uICedit->text().toStdString() << " \n";
       inputFile << left << setw(20) << vICedit->text().toStdString() << " \n";
       inputFile << left << setw(20) << pICedit->text().toStdString() << " \n";
-      inputFile << "0.0" << "\n";   // Cuneyt: This 0.0 is for the Ic of the scalar variable. It is not being used right now.
+      inputFile << "0.0" << "\n";   // Cuneyt: This 0.0 is for the IC of the scalar variable. It is not being used right now.
    }
 
    // Write SECTION PARAMETERS
@@ -644,7 +738,7 @@ void mainWindow::writeInputFile()
    inputFile << "Scheme                                  " << schemeCombo->currentIndex() + 1 << "\n";   // Cuneyt: These "+1" s should be avoided. Actually the ones in the solver should start from zero.
    inputFile << "Discretization                          " << discretizationCombo->currentIndex() + 1 << "\n";
    inputFile << "Solution strategy                       " << strategyCombo->currentIndex() + 1 << "\n";
-   inputFile << "(Pseudo) time step                      " << timeStepEdit->text().toStdString();
+   inputFile << "Time step                               " << timeStepEdit->text().toStdString();
    if (timeStepEdit->text().toStdString() == "") inputFile << "-1.0";  inputFile << "\n";    // Cuneyt: Read the above comment.
    inputFile << "Kinematic viscosity (m2/s)              " << kinvisEdit->text().toStdString();
    if (kinvisEdit->text().toStdString() == "") inputFile << "-1.0";  inputFile << "\n";      // Cuneyt: Read the above comment.
@@ -668,7 +762,7 @@ void mainWindow::writeInputFile()
    inputFile << "Convergence tolerance of outer iters.   " << outerToleranceEdit->text().toStdString();
    if (outerToleranceEdit->text().toStdString() == "") inputFile << "-0.1";  inputFile << "\n";           // Cuneyt: Read the above comment.
    inputFile << "Time dependent flow?                    " << timeDependentCheck->isChecked() << "\n";
-   inputFile << "Create Tecplot files?                   " << DATfileCheck->isChecked() << "\n";
+   inputFile << "Create DAT files?                       " << DATfileCheck->isChecked() << "\n";
    inputFile << "Restart from a previous solution?       " << restartCheck->isChecked() << "\n";
 
    // Write SECTION MESHPOINTS
@@ -695,9 +789,11 @@ void mainWindow::writeInputFile()
    if (problem->mesh->getIsMeshGenerated()) {
       for (int b=0; b<problem->mesh->getnBlocks(); b++) {
          inputFile << setw(4) << b << setw(4)
-                  << problem->mesh->blocks[b].getnControlPoints() << "\n";   // Block number and # of control points of this block
-         for(int i = 0; i < problem->mesh->blocks[b].getnControlPoints(); i++)
+                   << problem->mesh->blocks[b].getnControlPoints() << "\n";   // Block number and # of control points of this block
+         
+         for(int i = 0; i < problem->mesh->blocks[b].getnControlPoints(); i++) {
             inputFile << problem->mesh->blocks[b].controlPoints[i] << "\n";
+         }
       }
    }
 
@@ -706,18 +802,20 @@ void mainWindow::writeInputFile()
    if (problem->mesh->getIsMeshGenerated()) {
       for (int b=0; b<problem->mesh->getnBlocks(); b++) {
          inputFile << setw(4) << b << setw(4)
-                  << problem->mesh->blocks[b].getnBlockedCells() << "\n";   // Block number and # of blocked cells of this block
+                   << problem->mesh->blocks[b].getnBlockedCells() << "\n";   // Block number and # of blocked cells of this block
+         
          int nX = problem->mesh->blocks[b].getnXpoints();  // Shortcut (# of points in x direction)
          int nY = problem->mesh->blocks[b].getnYpoints();  // Shortcut (# of points in y direction)
          int nCell = (nX-1)*(nY-1);  //   Shortcut (# of cells)
+         
          for(int i = 0; i < nCell; i++) {
-            if (problem->mesh->blocks[b].isCellBlocked[i] == 1)
+            if (problem->mesh->blocks[b].isCellBlocked[i] == 1) {
                inputFile << i << "\n";
+            }
          }
       }
    }
 
-   // Cuneyt: A message such as "inputFile is written" should be provided.
    inputFile.close();
 
 }  // End of function writeInputFile()

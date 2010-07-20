@@ -2,18 +2,21 @@
 
 TODO LIST (In Turkish)
 
-- Giris-cikis seklinde bir akis cozulurken cikista basinc sabitlenmedigi icin basincsurekli dusuyor Basinc ve kutle residual'lari
-  sabitleniyor, dusmuyor.
+- 20-7-2010 "Contour plot level" kutucugunun validator'u 1-500 araligina izin verdigi halde ilk rakam olarak sifir yazilmasina da izin veriyor.
+  Boyle olunca da contour cizilmek istenince program cokuyor.
 
-- Visualization yapmak icin acilan DAT dosyasinin zaten acik olan DAT dosyasi ile ayni oldugunun kontrolu yapilmali. En basitinden dosya
+- 19-7-2010 Giris-Cikis seklinde bir akis cozulurken cikista basinc sabitlenmedigi icin basinc surekli dusuyor. Basinc ve kutle residual'lari
+  bir degerde sabitleniyor, dusmuyor.
+
+- 19-7-2010 Visualization yapmak icin acilan DAT dosyasinin zaten acik olan CFD dosyasi ile ayni oldugunun kontrolu yapilmali. En basitinden dosya
   isimlerine bakilabilir.
 
-- DAT dosyasinin (sonuc dosyasi) okunup okunmadigini gosteren bir degiskene ihtiyac var. isDATread gibi birsey.
+- 19-7-2010 DAT dosyasinin (sonuc dosyasi) okunup okunmadigini gosteren bir degiskene ihtiyac var. isDATread gibi birsey.
 
-- DAT dosyalari isTecplot parametresi TRUE ise yaratiliyor. Ama bu DAT dosyalari VFL ile post processing yaparken de kullaniliyor.
+- 18-7-2010 DAT dosyalari isTecplot parametresi TRUE ise yaratiliyor. Ama bu DAT dosyalari VFL ile post processing yaparken de kullaniliyor.
   O zaman bu degiskenin adi degismeli, createDAT gibi birsey olmali.
 
-- Yukaridakine bagli olarak DAT dosyalari zaten OUT dosyalarindaki tum bilgileri icermiyor mu? O zaman OUT'lar hic yaratilmasin
+- 18-7-2010 Yukaridakine bagli olarak DAT dosyalari zaten OUT dosyalarindaki tum bilgileri icermiyor mu? O zaman OUT'lar hic yaratilmasin
   ve DAT'lar restart icin kullanilabilir olsun. Boyle olursa DAT'lar yaratilsin mi diye de sorulmaz ve hep yaratilir, is basitlesir.
 
 - Convergence ve control point grafikleri icin alinan screenshot'larda eksenler gorunmuyor.
