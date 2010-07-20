@@ -4,13 +4,16 @@
 
 extern Problem *problem;
 
+
+
+
 int ReadInputFile(int** &controlPointIndex, int** &BlockCellIndex)
 {
-   // Cuneyt: No multi-block support
+   // Cuneyt: No multi-block support because the flow solver can only work with a single block.
 
    // This function reads the .inp file created by Virtual Flow Lab GUI
    // Returning 0 means successful reading.
-   // Returning -1 means unsuccessful reading.    Cuneyt: Explain better
+   // Returning -1 means unsuccessful reading due to non-existing mesh in the input file.
    // Returning -2 means there is a problem with the restart file.
 
    int b, i, j, jj, k, np, nb, dummyInt;
@@ -38,15 +41,15 @@ int ReadInputFile(int** &controlPointIndex, int** &BlockCellIndex)
    // Read SECTION GEOMETRY
    ********************************************************/
    inpFile.ignore(256, '\n');    // Read and ignore the section title
-   inpFile >> nb;                // Number of blocks
-   inpFile.ignore(256, '\n');    // Finish the remainings of the last read line
-   inpFile >> np;                // Number of geometric primitives
+   inpFile >> nb;                // Number of blocks. nb is a local variable.
+   inpFile.ignore(256, '\n');    // Finish the remainings of the last line read
+   inpFile >> np;                // Number of geometric primitives.  np is a local variable.
 
 
    /********************************************************
    // Read SECTION BLOCKFACE
    ********************************************************/
-   inpFile.ignore(256, '\n');    // Finish the remainings of the last read line
+   inpFile.ignore(256, '\n');    // Finish the remainings of the last line read
    inpFile.ignore(256, '\n');    // Read and ignore the section title
    inpFile >> dummyInt;          // Read and ignore the block number
    inpFile >> numXcells;
@@ -54,34 +57,39 @@ int ReadInputFile(int** &controlPointIndex, int** &BlockCellIndex)
    inpFile >> numYcells;
    numYcells = numYcells - 1;
 
+
    /********************************************************
    // Read SECTION MESH
    ********************************************************/
-   inpFile.ignore(256, '\n');    // Finish the remainings of the last read line
+   inpFile.ignore(256, '\n');    // Finish the remainings of the last line read
    inpFile.ignore(256, '\n');    // Read and ignore the section title
    inpFile >> dummyInt;          // Read the flag for mesh generation
-   if (dummyInt == 0) return -1; // Unsuccessfull return
+   if (dummyInt == 0) {
+      return -1;                 // No mesh is generated. Unsuccessfull return
+   }
 
 
    /********************************************************
    // Read SECTION BC
    ********************************************************/
-   inpFile.ignore(256, '\n');    // Finish the remainings of the last read line
+   inpFile.ignore(256, '\n');    // Finish the remainings of the last line read
    inpFile.ignore(256, '\n');    // Read and ignore the section title
 
    inpFile.ignore(256, '\n');    // Read and ignore the block number line
    
    inpFile >> southBCn;          // Number of BCs of the South face
-   inpFile.ignore(256, '\n');    // Finish the remainings of the last read line
+   inpFile.ignore(256, '\n');    // Finish the remainings of the last line read
    southBCtype = new int[southBCn];
 
    southBC = new string*[southBCn];
-   for (i = 0; i < southBCn; i++)
+   for (i = 0; i < southBCn; i++) {
       southBC[i] = new string[3];
+   }
 
    southBCcells = new int*[southBCn];
-   for (i = 0; i < southBCn; i++)
+   for (i = 0; i < southBCn; i++) {
       southBCcells[i] = new int[2];
+   }
 
    for (i = 0; i < southBCn; i++) {
       inpFile >> southBCtype[i];
@@ -102,16 +110,18 @@ int ReadInputFile(int** &controlPointIndex, int** &BlockCellIndex)
    }
 
    inpFile >> eastBCn;			   // Number of BCs of the East face
-   inpFile.ignore(256, '\n');	   // Finish the remainings of the last read line
+   inpFile.ignore(256, '\n');	   // Finish the remainings of the last line read
    eastBCtype = new int[eastBCn];
 
    eastBC = new string*[eastBCn];
-   for (i = 0; i < eastBCn; i++)
+   for (i = 0; i < eastBCn; i++) {
       eastBC[i] = new string[3];
+   }
 
    eastBCcells = new int*[eastBCn];
-   for (i = 0; i < eastBCn; i++)
+   for (i = 0; i < eastBCn; i++) {
       eastBCcells[i] = new int[2];
+   }
 
    for (i = 0; i < eastBCn; i++) {
       inpFile >> eastBCtype[i];
@@ -132,16 +142,18 @@ int ReadInputFile(int** &controlPointIndex, int** &BlockCellIndex)
    }
 
    inpFile >> northBCn;		      // Number of BCs of the North face
-   inpFile.ignore(256, '\n');	   // Finish the remainings of the last read line
+   inpFile.ignore(256, '\n');	   // Finish the remainings of the last line read
    northBCtype = new int[northBCn];
 
    northBC = new string*[northBCn];
-   for (i = 0; i < northBCn; i++)
+   for (i = 0; i < northBCn; i++) {
       northBC[i] = new string[3];
+   }
 
    northBCcells = new int*[northBCn];
-   for (i = 0; i < northBCn; i++)
+   for (i = 0; i < northBCn; i++) {
       northBCcells[i] = new int[2];
+   }
 
    for (i = 0; i < northBCn; i++) {
       inpFile >> northBCtype[i];
@@ -162,16 +174,18 @@ int ReadInputFile(int** &controlPointIndex, int** &BlockCellIndex)
    }
 
    inpFile >> westBCn;			   // Number of BCs of the West face
-   inpFile.ignore(256, '\n');	   // Finish the remainings of the last read line
+   inpFile.ignore(256, '\n');	   // Finish the remainings of the last line read
    westBCtype = new int[westBCn];
 
    westBC = new string*[westBCn];
-   for (i = 0; i < westBCn; i++)
+   for (i = 0; i < westBCn; i++) {
       westBC[i] = new string[3];
+   }
 
    westBCcells = new int*[westBCn];
-   for (i = 0; i < westBCn; i++)
+   for (i = 0; i < westBCn; i++) {
       westBCcells[i] = new int[2];
+   }
 
    for (i = 0; i < westBCn; i++) {
       inpFile >> westBCtype[i];
@@ -217,7 +231,7 @@ int ReadInputFile(int** &controlPointIndex, int** &BlockCellIndex)
    inpFile.ignore(256, '\n');	   // Read and ignore the section title
 
    inpFile >> dummyInt;		      // Number of parameters
-   inpFile.ignore(256, '\n');	   // Ignore the remaining of the last read line
+   inpFile.ignore(256, '\n');	   // Ignore the remaining of the last line read
 
    inpFile.get(c41,41);          // Read 40 character parameter title
    inpFile >> solverAlgorithm;   // Read algorithm (0: SIMPLE, 1: SIMPLEC, 2: SIMPLER)  // Cuneyt: Incompatibility between GUI and Solver
@@ -280,7 +294,7 @@ int ReadInputFile(int** &controlPointIndex, int** &BlockCellIndex)
    inpFile.ignore(256, '\n');
 
    inpFile.get(c41,41);
-   inpFile >> isTecplot;         // Read the flag for Tecplot output generation
+   inpFile >> isTecplot;         // Read the flag for DAT file generation.   Cuneyt: The variable name should not be isTecplot, but rather something like isDAtfile.
    inpFile.ignore(256, '\n');
 
    inpFile.get(c41,41);
@@ -306,15 +320,16 @@ int ReadInputFile(int** &controlPointIndex, int** &BlockCellIndex)
    /********************************************************
    // Read SECTION CONTROLPOINTS
    ********************************************************/
-   inpFile.ignore(256, '\n');    // Finish the remainings of the last read line
+   inpFile.ignore(256, '\n');    // Finish the remainings of the last line read
    inpFile.ignore(256, '\n');    // Read and ignore the section title
    inpFile >> dummyInt;          // Block number is ignored
    inpFile >> nControlPoints;    // # of track points of this block
    inpFile.ignore(256, '\n');    // Read and ignore the section title
    if (nControlPoints > 0) {     // Allocate TrackPointCoor array
       controlPointIndex = new int*[nControlPoints];
-      for (i = 0; i < nControlPoints; i++)
+      for (i = 0; i < nControlPoints; i++) {
          controlPointIndex[i] = new int[2];
+      }
    }
    for(k = 0; k < nControlPoints; k++) {
       inpFile >> dummyInt;       // Read track point. This is a number between zero and the total number of nodes of the block minus 1.
@@ -335,8 +350,9 @@ int ReadInputFile(int** &controlPointIndex, int** &BlockCellIndex)
    inpFile >> nBlockCells;       // # of blocked cells of this block
    if (nBlockCells > 0) {        // Allocate BlockedCellCoor array
       BlockCellIndex = new int*[nBlockCells];
-      for (i = 0; i < nBlockCells; i++)
+      for (i = 0; i < nBlockCells; i++) {
          BlockCellIndex[i] = new int[4];
+      }
    }
    for(k = 0; k < nBlockCells; k++) {
       inpFile >> dummyInt;       // Read blocked cell number. This is a number between zero and the total number of cells of the block minus 1.
@@ -740,6 +756,7 @@ int ReadInputFile(int** &controlPointIndex, int** &BlockCellIndex)
    westBC  = NULL;  westBCcells  = NULL;
 
    inpFile.close();
+
    return 0;  // Successfull return
 
 }  // End of function  ReadInputFile()
