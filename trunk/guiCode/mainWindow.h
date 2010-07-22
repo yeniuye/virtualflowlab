@@ -74,6 +74,7 @@ public slots:
    void openResultFile();
    void clearAllControlPoints();
    void clearAllBlockedCells();
+   void autoFillBlockCellStatusChanged();
    void visualizeButtonsClicked();
    void visualizeChecksToggled();
    void contourVarChanged(int);

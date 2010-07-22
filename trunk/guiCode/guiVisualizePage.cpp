@@ -168,43 +168,6 @@ void mainWindow::showContoursButtonClicked()
 
 
 
-void mainWindow::clearAllControlPoints()
-{
-   if(!problem->mesh->getIsMeshGenerated())
-      return;
-
-   int b = 0;  // Cuneyt: No multi-block support.
-
-   problem->mesh->blocks[b].setnControlPoints(0);
-   glWidget->update();
-}
-
-
-
-
-void mainWindow::clearAllBlockedCells()
-{
-   int b, i, nX, nY;
-
-   if(!problem->mesh->getIsMeshGenerated())
-      return;
-
-   b = 0;  // Cuneyt: No multi-block support.
-
-
-   nX = problem->mesh->blocks[b].getnXpoints();
-   nY = problem->mesh->blocks[b].getnYpoints();
-
-   for (i = 0; i < (nY-1)*(nX-1); i++)
-      problem->mesh->blocks[b].isCellBlocked[i] = 0;
-
-   problem->mesh->blocks[b].setnBlockedCells(0);
-   glWidget->update();
-}
-
-
-
-
 void mainWindow::visualizeChecksToggled()
 {
    problem->showBoundary = boundaryCheckBox->isChecked();
@@ -442,9 +405,13 @@ void mainWindow::addStreamline(float x, float y)
    dummyCoor[0][1] = y;
 
    cornerCoor = new float*[4];
-   for(i=0; i<4; i++) cornerCoor[i] = new float[2];
+   for(i=0; i<4; i++) {
+      cornerCoor[i] = new float[2];
+   }
 
-   for(i=0; i<9; i++) neighborCells[i] = -1;
+   for(i=0; i<9; i++) {
+      neighborCells[i] = -1;
+   }
 
    for (k=1; k<nMaxSteps; k++) {
       // First find in which cell the point (x,y) lies in
@@ -492,7 +459,8 @@ void mainWindow::addStreamline(float x, float y)
 
       // Let's find the location of the next point of the streamline.
       // We know that next point is stepSize*cellSize away from point(x,y).
-      distance = stepSize * min(fabs(cornerCoor[1][0]-cornerCoor[0][0]), fabs(cornerCoor[2][1]-cornerCoor[0][1]));	// Cuneyt: Cells are assumed to be Cartesian.
+      // Cuneyt: Cells are assumed to be Cartesian.
+      distance = stepSize * min(fabs(cornerCoor[1][0]-cornerCoor[0][0]), fabs(cornerCoor[2][1]-cornerCoor[0][1]));
       
       // Its exact location is found from the direction of the speed vector.
 

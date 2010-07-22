@@ -25,8 +25,11 @@ public:
    int getnControlPoints()        {return nControlPoints;}
    int getnBlockedCells()         {return nBlockedCells;}
    int addRemoveControlPoint(int c);
-   void addBlockedCell(int bc);
-   void removeBlockedCell(int bc);
+   void findNeighborsOfCell(int c, int* &neighbors);
+   void addBlockedCell(int cell);
+   void removeBlockedCell(int cell);
+   void autoFillBlockedCell(int cell);
+   void autoFillRecursive(int cell);
    int findCellAtXY(float x, float y, int &iCell, int &jCell, float** &cornerCoor);
    int isXYinNeighbors(float x, float y, int &iCell, int &jCell, float** &cornerCoor, int* neighborCells);
 

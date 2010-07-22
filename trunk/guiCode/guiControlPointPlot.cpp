@@ -6,6 +6,7 @@
 #include "guiControlPointPlot.h"
 #include "guiTypedefs.h"
 #include "guiProblem.h"
+
 extern Problem *problem;
 
 
@@ -26,7 +27,7 @@ ControlPointPlot::ControlPointPlot(QWidget *parent) : QWidget(parent)
    penColor[2] = Qt::black;
 
    defaultMinX = 0;
-   defaultMaxX = 1000;
+   defaultMaxX = 500;
    defaultMinY = -10;
    defaultMaxY = 10;
 
@@ -41,10 +42,6 @@ ControlPointPlot::ControlPointPlot(QWidget *parent) : QWidget(parent)
          maxValues[i][j] = maxY;
       }
    }
-
-   showU = TRUE;
-   showV = FALSE;
-   showP = FALSE;
 
    emit setAxesLabels(defaultMinX, defaultMaxX, defaultMinY, defaultMaxY);
 
@@ -99,8 +96,9 @@ void ControlPointPlot::paintEvent(QPaintEvent *)
    //painter.setRenderHint(QPainter::Antialiasing);
    //drawLabels(painter);
 
-   if(!problem->mesh->getIsMeshGenerated())
+   if(!problem->mesh->getIsMeshGenerated()) {
       return;
+   }
 
    int nCP = problem->mesh->blocks[0].getnControlPoints();  // Number of control points defined for the problem.
 
@@ -110,77 +108,12 @@ void ControlPointPlot::paintEvent(QPaintEvent *)
       painter.scale(width()/(maxX-minX), height()/(maxY-minY));	// Scales the plot properly.
       painter.translate(-minX, maxY);	// Translates the origin into the proper location.
 
-      if (showU) {
-         painter.setPen(QPen(penColor[0]));
-         painter.drawPath(controlPointPaths[whichControlPoint][0]);
-      } else if (showV) {
-         painter.setPen(QPen(penColor[1]));
-         painter.drawPath(controlPointPaths[whichControlPoint][1]);
-      } else {
-         painter.setPen(QPen(penColor[2]));
-         painter.drawPath(controlPointPaths[whichControlPoint][2]);
-      }
-
+      painter.setPen(QPen(penColor[whichVariable]));
+      painter.drawPath(controlPointPaths[whichControlPoint][whichVariable]);
+      
       update();
    }
-
-   //drawTicksAndGrids(painter);
-
 }  // End of function paintEvent()
-
-
-
-
-void ControlPointPlot::resizeEvent(QResizeEvent *)
-{
-   // Transformation between real data and screen pixels in the x direction (pixel = Ax + B)
-   A = width()/(maxX - minX);
-   B = - A * minX;
-   
-   // Transformation between real data and screen pixels in the y direction (pixel = Cy + D)
-   C = - height()/(maxY - minY);
-   D = - C * maxY;
-
-   update();
-}  // End of function resizeEvent()
-
-
-
-
-void ControlPointPlot::formTicksAndGridsPath()
-{
-
-}
-
-
-
-
-void ControlPointPlot::changeUshow(bool state)
-{
-   showU = state;
-   autoAdjustYaxis();
-   update();
-}
-
-
-
-
-void ControlPointPlot::changeVshow(bool state)
-{
-   showV = state;
-   autoAdjustYaxis();
-   update();
-}
-
-
-
-
-void ControlPointPlot::changePshow(bool state)
-{
-   showP = state;
-   autoAdjustYaxis();
-   update();
-}
 
 
 
@@ -201,7 +134,7 @@ void ControlPointPlot::updateControlPoints(int iter)
          v = problem->mesh->blocks[0].controlPointData[i][1];
          p = problem->mesh->blocks[0].controlPointData[i][2];
 
-         controlPointPaths[i][0].moveTo(iter, -u);  // Minus signs for the y component are used because in widget coordinates +y axis points downwards.
+         controlPointPaths[i][0].moveTo(iter, -u);  // Minus signs for y component are used because in widget coordinates +y axis points downwards.
          controlPointPaths[i][1].moveTo(iter, -v);
          controlPointPaths[i][2].moveTo(iter, -p);
 
@@ -219,23 +152,44 @@ void ControlPointPlot::updateControlPoints(int iter)
          controlPointPaths[i][1].lineTo(iter, -v);
          controlPointPaths[i][2].lineTo(iter, -p);
 
-         if (u < minValues[i][0])
+         if (u < minValues[i][0]) {
             minValues[i][0] = u;
-         else if (u > maxValues[i][0])
+         } else if (u > maxValues[i][0]) {
             maxValues[i][0] = u;
+         }
 
-         if (v < minValues[i][1])
+         if (v < minValues[i][1]) {
             minValues[i][1] = v;
-         else if (v > maxValues[i][1])
+         } else if (v > maxValues[i][1]) {
             maxValues[i][1] = v;
-
-         if (p < minValues[i][2])
+         }
+         
+         if (p < minValues[i][2]) {
             minValues[i][2] = p;
-         else if (p > maxValues[i][2])
+         } else if (p > maxValues[i][2]) {
             maxValues[i][2] = p;
+         }
       }
    }
+   autoAdjustXaxis(iter);
+   autoAdjustYaxis();
 }
+
+
+
+
+void ControlPointPlot::resizeEvent(QResizeEvent *)
+{
+   // Transformation between real data and screen pixels in the x direction (pixel = Ax + B)
+   A = width()/(maxX - minX);
+   B = - A * minX;
+   
+   // Transformation between real data and screen pixels in the y direction (pixel = Cy + D)
+   C = - height()/(maxY - minY);
+   D = - C * maxY;
+
+   update();
+}  // End of function resizeEvent()
 
 
 
@@ -246,6 +200,7 @@ void ControlPointPlot::decreaseMinX()
       minX = minX - 100;
    else if (minX > 1000)
       minX = minX - 1000;
+
    emit setAxesLabels(minX, maxX, minY, maxY);
 }
 
@@ -258,6 +213,7 @@ void ControlPointPlot::increaseMinX()
       minX = minX + 100;
    else if (minX >= 1000 && maxX-minX > 1000)
       minX = minX + 1000;
+
    emit setAxesLabels(minX, maxX, minY, maxY);
 }
 
@@ -283,6 +239,7 @@ void ControlPointPlot::increaseMaxX()
       maxX = maxX + 100;
    else if (maxX >= 1000)
       maxX = maxX + 1000;
+
    emit setAxesLabels(minX, maxX, minY, maxY);
 }
 
@@ -303,6 +260,7 @@ void ControlPointPlot::decreaseMinY()
       minY = minY - 1000;
    else if (minY >= -99999 && minY <= 100000)
       minY = minY - 10000;
+
    emit setAxesLabels(minX, maxX, minY, maxY);
 }
 
@@ -375,45 +333,41 @@ void ControlPointPlot::increaseMaxY()
       maxY = maxY + 1000;
    else if (minY >= -100000 && maxY < 100000)
       maxY = maxY + 10000;
+
    emit setAxesLabels(minX, maxX, minY, maxY);
 }
 
 
 
 
-/*
-void ControlPointPlot::autoAdjustXaxis()
+void ControlPointPlot::autoAdjustXaxis(int iter)
 {
+   if(!problem->mesh->getIsMeshGenerated()) {
+      return;
+   }
 
+   if (maxX - iter < 50) {
+      maxX = maxX + 250;  // Increase maxX value in increments of 250
+      emit setAxesLabels(minX, maxX, minY, maxY);
+   }
 }
-*/
 
 
 
 
 void ControlPointPlot::autoAdjustYaxis()
 {
-   double minValue, maxValue;
-
-   if(!problem->mesh->getIsMeshGenerated())
+   if(!problem->mesh->getIsMeshGenerated()) {
       return;
-
-   if (this->showU) {
-      minValue = minValues[whichControlPoint][0];
-      maxValue = maxValues[whichControlPoint][0];
-   } else if (this->showV) {
-      minValue = minValues[whichControlPoint][1];
-      maxValue = maxValues[whichControlPoint][1];
-   } else {
-      minValue = minValues[whichControlPoint][2];
-      maxValue = maxValues[whichControlPoint][2];
    }
+
+   double minValue = minValues[whichControlPoint][whichVariable];
+   double maxValue = maxValues[whichControlPoint][whichVariable];
 
    maxY = maxValue + 0.05 * (maxValue - minValue);  // To keep some space on the top of the plot window
    minY = minValue - 0.05 * (maxValue - minValue);  // Similar...
 
    emit setAxesLabels(minX, maxX, minY, maxY);
-   
 }
 
 
@@ -423,10 +377,41 @@ void ControlPointPlot::controlPointSpinBoxChanged(int cp)
 {
    // Cuneyt: No multi-block support.
 
-   if(!problem->mesh->getIsMeshGenerated())
+   if(!problem->mesh->getIsMeshGenerated()) {
       return;
+   }
 
    whichControlPoint = cp - 1;
+   autoAdjustYaxis();
+   update();
+}
+
+
+
+
+void ControlPointPlot::changeUshow(bool state)
+{
+   whichVariable = 0;  // u-velocity
+   autoAdjustYaxis();
+   update();
+}
+
+
+
+
+void ControlPointPlot::changeVshow(bool state)
+{
+   whichVariable = 1;  // v-velocity
+   autoAdjustYaxis();
+   update();
+}
+
+
+
+
+void ControlPointPlot::changePshow(bool state)
+{
+   whichVariable = 2;  // pressure
    autoAdjustYaxis();
    update();
 }

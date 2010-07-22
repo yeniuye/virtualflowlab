@@ -78,6 +78,7 @@ mainWindow::mainWindow():QMainWindow()
    connect(continueButton,               SIGNAL( clicked() ),                    this, SLOT( continueSolution() ));
    connect(terminateButton,              SIGNAL( clicked() ),                    this, SLOT( terminateSolution() ));
    connect(openResultFileButton,         SIGNAL( clicked() ),                    this, SLOT( openResultFile() ));
+   connect(autoFillBlockedCellsButton,   SIGNAL( clicked() ),                    this, SLOT( autoFillBlockCellStatusChanged() ));
    connect(clearAllBlockedCellsButton,   SIGNAL( clicked() ),                    this, SLOT( clearAllBlockedCells() ));
    connect(clearAllControlPointsButton,  SIGNAL( clicked() ),                    this, SLOT( clearAllControlPoints() ));
 
@@ -203,7 +204,7 @@ void mainWindow::resetMainWindow()
    maxOuterIterEdit->setText("");
    outerToleranceEdit->setText("");
    outputIntervalEdit->setText("");
-   controlPointUpdateIntervalEdit->setText("");
+   plotUpdateIntervalEdit->setText("");
    timeDependentCheck->setChecked(FALSE);
    timeDependentCheck->setEnabled(FALSE);
    DATfileCheck->setChecked(TRUE);
@@ -287,7 +288,7 @@ void mainWindow::setupLineEditValidators()
    maxOuterIterEdit->setValidator(new QIntValidator(maxOuterIterEdit));              // Cuneyt: Can NOT be negative. Can NOT be larger than the limit of type int.
    outerToleranceEdit->setValidator(new QDoubleValidator(outerToleranceEdit));       // Cuneyt: Can NOT be negative.
    outputIntervalEdit->setValidator(new QIntValidator(outputIntervalEdit));          // Cuneyt: Can NOT be negative. Can NOT be larger than the limit of type int.
-   controlPointUpdateIntervalEdit->setValidator(new QIntValidator(controlPointUpdateIntervalEdit));    // Cuneyt: Can NOT be negative. Can NOT be larger than the limit of type int.
+   plotUpdateIntervalEdit->setValidator(new QIntValidator(plotUpdateIntervalEdit));  // Cuneyt: Can NOT be negative. Can NOT be larger than the limit of type int.
 
    // To visualize
    contourLevelEdit->setValidator(new QIntValidator(1,500,contourLevelEdit));
@@ -578,7 +579,11 @@ void mainWindow::leftTabSelection(QWidget * w)
       vBCedit->setText("");
       pBCedit->setText("");
    } else if (i == 3) {    // "Blocked Cells" page is selected
-      problem->setMainState(BLOCKEDCELLS);
+      if (this->autoFillBlockedCellsButton->isChecked() ) {
+         problem->setMainState(BLOCKEDCELLSAUTOFILL);
+      } else {
+         problem->setMainState(BLOCKEDCELLS);
+      }
       problem->mesh->setPrimitiveUnderMouse(-1);                       // Cuneyt: Is this necessary ?
       glWidget->updateGL();                                            // Cuneyt: Is this necessary ?
    } else if (i == 4) {    // "Control Points" page is selected
@@ -587,8 +592,8 @@ void mainWindow::leftTabSelection(QWidget * w)
       glWidget->updateGL();                                            // Cuneyt: Is this necessary ?
    } else if (i == 5) {    // "Solve" page is selected
       problem->setMainState(PARAMETERS);
-      problem->mesh->setPrimitiveUnderMouse(-1);                       // Cuneyt: Buna gerek var mi?
-      glWidget->updateGL();                                            // Cuneyt: Buna gerek var mi?
+      problem->mesh->setPrimitiveUnderMouse(-1);                       // Cuneyt: Is this necessary ?
+      glWidget->updateGL();                                            // Cuneyt: Is this necessary ?
    } else if (i == 6) {    // "Visualize" page is selected
       problem->setMainState(VISUALIZE);
    }

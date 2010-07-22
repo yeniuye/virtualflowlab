@@ -87,7 +87,7 @@ void GLWidget::paintGL(void)
       drawStructuredMesh();
       drawBlockedCells(Qt::red);
       drawControlPoints();
-   } else if (problem->getMainState() == BLOCKEDCELLS) {
+   } else if (problem->getMainState() == BLOCKEDCELLS || problem->getMainState() == BLOCKEDCELLSAUTOFILL) {
       drawStructuredMesh();
       drawBlockedCells(Qt::red);
    } else if (problem->getMainState() == VISUALIZE) {
@@ -305,6 +305,7 @@ void GLWidget::drawControlPoints(void)
    }
    glFlush();
 }
+
 
 
 
@@ -1028,26 +1029,23 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
    visualizeStates visState = problem->getVisualizeState();
    primitiveTypes drawingWhat = problem->getDrawingWhat();
 
-   //  This is for continuos zooming in/out using the mid mouse button
+
+   // Continuos zooming in/out using the mid mouse button
    if (event->button() == Qt::MidButton) {
       click1Pos = event->pos();
       clicked1 = TRUE;
       isContinuousZooming = TRUE;
    }
 
-   // This is for zooming in/out using a rubberband zoom rectangle
+
+   // Zoom in/out using a rubberband zoom rectangle
    if (glMState == ZOOM && event->button() == Qt::LeftButton) {
       click1Pos = event->pos();
       clicked1 = TRUE;
-
-      // qrubberband
-      // rubberBand = new QRubberBand(QRubberBand::Line, this);
-      // rubberBand->setGeometry(QRect(click1Pos, QSize()));
-      // rubberBand->show();
-      // qrubberband
    }
 
-   // This is for panning around using the right mouse button
+
+   // Pan around using the right mouse button
    if (event->button() == Qt::RightButton ) {
       click1Pos = event->pos();
       isPanning = TRUE;
@@ -1059,7 +1057,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
    }
 
 
-   // The following deletes the primitive under the mouse when left mouse button is clicked.
+   // Delete the primitive under mouse when left mouse button is clicked.
    if (mState == GEOM && drawingWhat == DEL && glMState == SELECTION && event->button() == Qt::LeftButton ) {
       if (problem->mesh->getnPrimitives() > 0) {
          p = primitiveAtPosition(event->pos());
@@ -1070,7 +1068,8 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
       }
    }
 
-   //  The following selects the primitive under the mouse to specify block & face properties.
+
+   // Select the primitive under mouse to specify block & face properties.
    if (mState == MESH && glMState == SELECTION && event->button() == Qt::LeftButton ) {
       if (problem->mesh->getnPrimitives() > 0) {
          p = primitiveAtPosition(event->pos());
@@ -1088,7 +1087,8 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
       }
    }
 
-   // The following selects the primitive under the mouse to specify boundary conditions.
+
+   // Select the primitive under mouse to specify boundary conditions.
    if (mState == BCIC && event->button() == Qt::LeftButton ) {
       if (problem->mesh->getnPrimitives() > 0) {
          p = primitiveAtPosition(event->pos());
@@ -1106,7 +1106,8 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
       }
    }
 
-   // The following selects the mesh point under the mouse to mark it as a control point.
+
+   // Select the mesh point under mouse to mark it as a control point.
    // Cuneyt: No-multi block support. Works only for the 0th block.
    if (mState == CONTROLPOINTS && glMState == SELECTION && event->button() == Qt::LeftButton ) {
       if (problem->mesh->getIsMeshGenerated()) {
@@ -1118,7 +1119,8 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
       }
    }
 
-   // The following selects the mesh cell under the mouse to mark it as a blocked cell.
+
+   // Select the mesh cell under mouse to mark it as a blocked cell.
    // Cuneyt: No-multi block support. Works only for the 0th block.
    if (mState == BLOCKEDCELLS && glMState == SELECTION && event->button() == Qt::LeftButton ) {
       if (problem->mesh->getIsMeshGenerated()) {
@@ -1127,7 +1129,16 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
          updateGL();
       }
    }
-   // The following selects the mesh cell under the mouse to mark it as a non-blocked cell.
+   if (mState == BLOCKEDCELLSAUTOFILL && glMState == SELECTION && event->button() == Qt::LeftButton ) {
+      if (problem->mesh->getIsMeshGenerated()) {
+         m = meshCellAtPosition(event->pos());
+         if (m > -1) problem->mesh->blocks[0].autoFillBlockedCell(m);
+         updateGL();
+      }
+   }
+
+
+   // Select the mesh cell under mouse to mark it as a non-blocked cell.
    // Cuneyt: No-multi block support. Works only for the 0th block.
    if (mState == BLOCKEDCELLS && glMState == SELECTION && event->button() == Qt::RightButton ) {
       if (problem->mesh->getIsMeshGenerated()) {
@@ -1137,7 +1148,8 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
       }
    }
 
-   // The following is for probing during post processing.
+
+   // Probe during post processing.
    if (mState == VISUALIZE && visState == PROBE && glMState == SELECTION && event->button() == Qt::LeftButton ) {
       if (problem->mesh->getIsMeshGenerated()) {	// Cuneyt: This should change. A variable like isDATread should be used.
          float x = event->pos().x() * (maxX-minX) / (1.0*this->width()) + minX;
@@ -1146,7 +1158,8 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
       }
    }
 
-   // The following is for placing a streamline during post processing.
+
+   // Place a streamline during post processing.
    if (mState == VISUALIZE && visState == ADDSTREAMLINE && glMState == SELECTION && event->button() == Qt::LeftButton ) {
       if (problem->getResultFileName() != "") {
          float x = event->pos().x() * (maxX-minX) / (1.0*this->width()) + minX;
@@ -1161,6 +1174,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 
 
 
+
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
    int p, m;
@@ -1168,13 +1182,14 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
    glMouseStates glMState = problem->getGlMouseState();
    primitiveTypes drawingWhat = problem->getDrawingWhat();
 
+
    // Emit the signal that shows the x, y position of the mouse.
    float x = event->pos().x() * (maxX-minX) / (1.0*this->width()) + minX;
    float y = event->pos().y() * (minY-maxY) / (1.0*this->height()) + maxY;
    emit GLWidget::xyChanged(x, y);
 
 
-   //  This is for continuos zooming in/out using the mid mouse button
+   // Continuos zooming in/out using the mid mouse button.
    if (isContinuousZooming) {
       if ((event->pos().y() - click1Pos.y()) > 1) {
          this->zoomIn();
@@ -1185,7 +1200,8 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
       }
    }
 
-   // This is for zooming in/out using a rubberband zoom rectangle
+
+   // Zoom in/out using a rubberband zoom rectangle.
    if(clicked1 && glMState == ZOOM) {
       isRubberBandZooming = TRUE;
       // Draw zoom rectangle
@@ -1197,13 +1213,13 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
    }
 
 
-   // This is for panning around using the right mouse button
+   // Pan around using the right mouse button.
    if (isPanning) {
       pan(event->pos());
    }
 
 
-   //  The following draws the primitive under the mouse with a different color when deleting a primitive.
+   // Draw the primitive under mouse with a different color when deleting a primitive.
    if (mState == GEOM && drawingWhat == DEL && glMState == SELECTION) {
       if (problem->mesh->getnPrimitives() > 0) {
          p = primitiveAtPosition(event->pos());
@@ -1221,7 +1237,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
       }
    }
 
-   // The following selects the mesh cell under the mouse to mark it as a blocked cell.
+   // Select the mesh cell under mouse to mark it as a blocked cell.
    // Cuneyt: No-multi block support. Works only for the 0th block.
    if (mState == BLOCKEDCELLS && glMState == SELECTION && event->buttons() == Qt::LeftButton ) {
       if (problem->mesh->getIsMeshGenerated()) {
@@ -1230,7 +1246,9 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
          updateGL();
       }
    }
-   // The following selects the mesh cell under the mouse to mark it as a non-blocked cell.
+
+
+   // Select the mesh cell under mouse to mark it as a non-blocked cell.
    // Cuneyt: No-multi block support. Works only for the 0th block.
    if (mState == BLOCKEDCELLS && glMState == SELECTION && event->buttons() == Qt::RightButton ) {
       if (problem->mesh->getIsMeshGenerated()) {
@@ -1249,25 +1267,26 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
 {
    glMouseStates glMState = problem->getGlMouseState();
 
-   // This is for panning around using the right mouse button
+
+   // Pan around using the right mouse button.
    if (isPanning) {
       clicked1 = FALSE;
       isPanning = FALSE;
    }
 
 
-   // This is for continuous zooming in/out using the mid mouse button
+   // Continuous zooming in/out using the mid mouse button.
    if (isContinuousZooming) {
       clicked1 = FALSE;
       isContinuousZooming = FALSE;
    }
 
-   // This is for zooming in/out using a rubberband zoom rectangle
+
+   // Zoom in/out using a rubberband zoom rectangle.
    if (glMState == ZOOM && event->button() == Qt::LeftButton) {
       clicked1 = FALSE;
       isRubberBandZooming = FALSE;
       zoomIntoRectangle();
-      //problem->setGlMouseState(SELECTION);
       emit releaseZoomButton();
    }
 

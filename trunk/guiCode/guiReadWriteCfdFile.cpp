@@ -290,7 +290,7 @@ void mainWindow::readCfdFile()
 
    cfdFile.get(c41,41);
    cfdFile.getline(c256, 256, '\n');
-   controlPointUpdateIntervalEdit->setText(QString(c256).trimmed());  // Read control point update interval
+   plotUpdateIntervalEdit->setText(QString(c256).trimmed());  // Read plot update interval
 
    cfdFile.get(c41,41);
    cfdFile.getline(c256, 256, '\n');
@@ -578,7 +578,7 @@ void mainWindow::writeCfdFile()
    //cfdFile << "Scalar relaxation                       " << scalarRelaxationEdit->text().toStdString() << "\n";
    cfdFile << "Max. number of outer iterations         " << maxOuterIterEdit->text().toStdString() << "\n";
    cfdFile << "Save interval                           " << outputIntervalEdit->text().toStdString() << "\n";
-   cfdFile << "Control point update interval           " << controlPointUpdateIntervalEdit->text().toStdString() << "\n";
+   cfdFile << "Plot update interval                    " << plotUpdateIntervalEdit->text().toStdString() << "\n";
    cfdFile << "Convergence tolerance of outer iters.   " << outerToleranceEdit->text().toStdString() << "\n";
    cfdFile << "Time dependent flow?                    " << timeDependentCheck->isChecked() << "\n";
    cfdFile << "Create DAT files?                       " << DATfileCheck->isChecked() << "\n";
@@ -757,8 +757,8 @@ void mainWindow::writeInputFile()
    if (maxOuterIterEdit->text().toStdString() == "") inputFile << "-1";  inputFile << "\n";               // Cuneyt: Read the above comment.
    inputFile << "Save interval                           " << outputIntervalEdit->text().toStdString();
    if (outputIntervalEdit->text().toStdString() == "") inputFile << "-1";  inputFile << "\n";             // Cuneyt: Read the above comment.
-   inputFile << "Control point update interval           " << controlPointUpdateIntervalEdit->text().toStdString();
-   if (controlPointUpdateIntervalEdit->text().toStdString() == "") inputFile << "-1";  inputFile << "\n"; // Cuneyt: Read the above comment.
+   inputFile << "Plot update interval                    " << plotUpdateIntervalEdit->text().toStdString();
+   if (plotUpdateIntervalEdit->text().toStdString() == "") inputFile << "-1";  inputFile << "\n";         // Cuneyt: Read the above comment.
    inputFile << "Convergence tolerance of outer iters.   " << outerToleranceEdit->text().toStdString();
    if (outerToleranceEdit->text().toStdString() == "") inputFile << "-0.1";  inputFile << "\n";           // Cuneyt: Read the above comment.
    inputFile << "Time dependent flow?                    " << timeDependentCheck->isChecked() << "\n";

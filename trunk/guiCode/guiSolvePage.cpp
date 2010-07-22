@@ -31,7 +31,7 @@ void mainWindow::setParameters()
    problem->setMaxOuterIter(maxOuterIterEdit->text().toInt());
    problem->setOuterTolerance(outerToleranceEdit->text().toFloat());
    problem->setOutputInterval(outputIntervalEdit->text().toInt());
-   problem->setControlPointUpdateInterval(controlPointUpdateIntervalEdit->text().toInt());
+   problem->setPlotUpdateInterval(plotUpdateIntervalEdit->text().toInt());
 
    if (timeDependentCheck->isChecked())
       problem->setIsTimeDependent(TRUE);
@@ -206,4 +206,52 @@ void mainWindow::setControlPointAxesLabels(double minX, double maxX, double minY
    controlPointMaxXlabel->setText(QString("%1").arg(maxX));
    controlPointMinYlabel->setText(QString("%1").arg(minY,0,'E',3) + " ");
    controlPointMaxYlabel->setText(QString("%1").arg(maxY,0,'E',3) + " ");
+}
+
+
+
+
+void mainWindow::clearAllControlPoints()
+{
+   if(!problem->mesh->getIsMeshGenerated())
+      return;
+
+   int b = 0;  // Cuneyt: No multi-block support.
+
+   problem->mesh->blocks[b].setnControlPoints(0);
+   glWidget->update();
+}
+
+
+
+
+void mainWindow::clearAllBlockedCells()
+{
+   int b, i, nX, nY;
+
+   if(!problem->mesh->getIsMeshGenerated())
+      return;
+
+   b = 0;  // Cuneyt: No multi-block support.
+
+
+   nX = problem->mesh->blocks[b].getnXpoints();
+   nY = problem->mesh->blocks[b].getnYpoints();
+
+   for (i = 0; i < (nY-1)*(nX-1); i++)
+      problem->mesh->blocks[b].isCellBlocked[i] = 0;
+
+   problem->mesh->blocks[b].setnBlockedCells(0);
+   glWidget->update();
+}
+
+
+
+
+void mainWindow::autoFillBlockCellStatusChanged() {
+   if(this->autoFillBlockedCellsButton->isChecked()) {
+      problem->setMainState(BLOCKEDCELLSAUTOFILL);
+   } else {
+      problem->setMainState(BLOCKEDCELLS);
+   }
 }

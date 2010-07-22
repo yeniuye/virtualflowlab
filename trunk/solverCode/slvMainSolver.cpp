@@ -522,6 +522,8 @@ void SolverThread::mainSolver()
                       Vjiavrg, Pjiavrg, UjiResidual_avrg, VjiResidual_avrg, PjiResidual_avrg, Vorticity_ji,
                       BlockCellIndex, outerIter);
 
+         writeOUTfile(outerIter);
+
          message = QString(tr("The solution converged at iteration %1.")).arg(outerIter);
          emit appendOutput(message, Qt::black);
          emit sendRunStatus(QString(tr("CONVERGED")));
@@ -563,10 +565,10 @@ void SolverThread::mainSolver()
 
       
       /***********************************************************************
-       Update control point data
+       Update residual control point plots
       ***********************************************************************/
       // Cuneyt: Is the following if statement inefficient ?
-      if (outerIter == 1 || outerIter%problem->getControlPointUpdateInterval() == 0) {
+      if (outerIter == 1 || outerIter%problem->getPlotUpdateInterval() == 0) {
          // Send residual data to plot.
          emit sendResidual(outerIter, ResidualArray[2], ResidualArray[3], ResidualArray[0], ResidualArray[1]);
 

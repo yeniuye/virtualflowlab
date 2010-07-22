@@ -137,7 +137,7 @@ bool mainWindow::checkParameters()
    bool flag = true;
 
    if (kinvisEdit->text().toStdString() == "" || densityEdit->text().toStdString() == "" || maxOuterIterEdit->text().toStdString() == "" ||
-       outputIntervalEdit->text().toStdString() == "" || controlPointUpdateIntervalEdit->text().toStdString() == "" ||
+       outputIntervalEdit->text().toStdString() == "" || plotUpdateIntervalEdit->text().toStdString() == "" ||
        outerToleranceEdit->text().toStdString() == "") {
        flag = false;
    }
