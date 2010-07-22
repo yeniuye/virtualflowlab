@@ -45,7 +45,7 @@ public:
    void setOuterTolerance(float newOuterTolerance)     {outerTolerance = newOuterTolerance;}
    void setMaxOuterIter(int newMaxOuterIter)           {maxOuterIter = newMaxOuterIter;}
    void setOutputInterval(int newOutputInterval)       {outputInterval = newOutputInterval;}
-   void setControlPointUpdateInterval(int newControlPointUpdateInterval)   {controlPointUpdateInterval = newControlPointUpdateInterval;}
+   void setPlotUpdateInterval(int newPlotUpdateInterval)   {plotUpdateInterval = newPlotUpdateInterval;}
    void setIsRestart(bool newIsRestart)                {isRestart = newIsRestart;}
    void setIsTecplot(bool newIsTecplot)                {isTecplot = newIsTecplot;}
    void setIsTimeDependent(bool newTimeDependent)      {isTimeDependent = newTimeDependent;}
@@ -62,20 +62,20 @@ public:
    int getMeshGenerationAlgorithm()    {return meshGenerationAlgorithm;}
    int getNparameters()                {return nParameters;}
 
-   int getScheme()                   {return scheme;}
-   int getDiscretization()           {return discretization;}
-   int getStrategy()                 {return strategy;}
-   float getTimeStep()               {return timeStep;}
-   float getKinvis()                 {return kinvis;}
-   float getDensity()                {return density;}
-   float getRelaxation(int i)        {return relaxations[i];}
-   float getOuterTolerance()         {return outerTolerance;}
-   int getMaxOuterIter()             {return maxOuterIter;}
-   int getOutputInterval()           {return outputInterval;}
-   int getControlPointUpdateInterval()  {return controlPointUpdateInterval;}
-   bool getIsRestart()               {return isRestart;}
-   bool getIsTecplot()               {return isTecplot;}
-   bool getIsTimeDependent()         {return isTimeDependent;}
+   int getScheme()              {return scheme;}
+   int getDiscretization()      {return discretization;}
+   int getStrategy()            {return strategy;}
+   float getTimeStep()          {return timeStep;}
+   float getKinvis()            {return kinvis;}
+   float getDensity()           {return density;}
+   float getRelaxation(int i)   {return relaxations[i];}
+   float getOuterTolerance()    {return outerTolerance;}
+   int getMaxOuterIter()        {return maxOuterIter;}
+   int getOutputInterval()      {return outputInterval;}
+   int getPlotUpdateInterval()  {return plotUpdateInterval;}
+   bool getIsRestart()          {return isRestart;}
+   bool getIsTecplot()          {return isTecplot;}
+   bool getIsTimeDependent()    {return isTimeDependent;}
 
    StructuredMesh *mesh;
 
@@ -127,7 +127,7 @@ private:
    float outerTolerance;      // Convergence tolerance for outer iterations
    int maxOuterIter;          // Maximum number of outer iterations
    int outputInterval;        // Take an output at every *** iterations
-   int controlPointUpdateInterval;    // Update results at control points at every *** iterations
+   int plotUpdateInterval;    // Update convergence and control point plots at every ...... iterations
    bool isRestart;            // Set TRUE to start from a previous solution
    bool isTecplot;            // Set TRUE to generate Tecplot outputs
    bool isTimeDependent;      // Set TRUE to solve time dependent flows

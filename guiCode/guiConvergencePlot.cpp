@@ -20,7 +20,7 @@ ConvergencePlot::ConvergencePlot(QWidget *parent) : QWidget(parent)
    penColor[3] = Qt::green;
 
    defaultMinX = 0;
-   defaultMaxX = 1000;
+   defaultMaxX = 500;
    defaultMinY = -9;
    defaultMaxY = 2;
 
@@ -35,21 +35,6 @@ ConvergencePlot::ConvergencePlot(QWidget *parent) : QWidget(parent)
    showMresidual = TRUE;
 
    emit setAxesLabels(defaultMinX, defaultMaxX, defaultMinY, defaultMaxY);
-
-   // Initialize the starting point of the convergence lines
-   //convergencePaths[0].moveTo(A*0+B, C*0+D);
-   //convergencePaths[1].moveTo(A*0+B, C*0+D);
-   //convergencePaths[2].moveTo(A*0+B, C*0+D);
-   //convergencePaths[3].moveTo(A*0+B, C*0+D);
-
-   /*QFont newFont = font();
-   newFont.setPixelSize(12);
-   setFont(newFont);
-   
-   QFontMetrics fontMetrics(newFont);
-   xBoundingRect = fontMetrics.boundingRect(tr("x"));
-   yBoundingRect = fontMetrics.boundingRect(tr("y"));
-   */
 }
 
 
@@ -94,8 +79,8 @@ void ConvergencePlot::paintEvent(QPaintEvent *)
    //painter.setRenderHint(QPainter::Antialiasing);
    //drawLabels(painter);
 
-   painter.scale(width()/(maxX-minX), height()/(maxY-minY));	// Scales the plot properly.
-   painter.translate(-minX, maxY);	// Translates the origin into the proper location.
+   painter.scale(width()/(maxX-minX), height()/(maxY-minY));   // Scales the plot properly.
+   painter.translate(-minX, maxY);   // Translates the origin into the proper location.
 
    if (showUresidual) {
       painter.setPen(QPen(penColor[0]));
@@ -113,9 +98,7 @@ void ConvergencePlot::paintEvent(QPaintEvent *)
       painter.setPen(QPen(penColor[3]));
       painter.drawPath(convergencePaths[3]);
    }
-
-   //drawTicksAndGrids(painter);
-
+   update();
 }  // End of function paintEvent()
 
 
@@ -132,14 +115,6 @@ void ConvergencePlot::resizeEvent(QResizeEvent *)
    D = - C * maxY;
 
    update();
-}
-
-
-
-
-void ConvergencePlot::formTicksAndGridsPath()
-{
-
 }
 
 
@@ -194,7 +169,7 @@ void ConvergencePlot::updateResidual(int iter, double uRes, double vRes, double 
       convergencePaths[2].lineTo(iter, -log10(pRes));
       convergencePaths[3].lineTo(iter, -log10(mRes));
    }
-   update();
+   autoAdjustXaxis(iter);
 }
 
 
@@ -282,4 +257,14 @@ void ConvergencePlot::increaseMaxY()
 {
    maxY = maxY + 1;
    emit setAxesLabels(minX, maxX, minY, maxY);
+}
+
+
+
+void ConvergencePlot::autoAdjustXaxis(int iter)
+{
+   if (maxX - iter < 50) {
+      maxX = maxX + 250;  // Increase maxX value in increments of 250
+      emit setAxesLabels(minX, maxX, minY, maxY);
+   }
 }

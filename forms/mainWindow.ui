@@ -205,7 +205,7 @@
         <enum>QTabWidget::Rounded</enum>
        </property>
        <property name="currentIndex">
-        <number>6</number>
+        <number>5</number>
        </property>
        <property name="usesScrollButtons">
         <bool>false</bool>
@@ -1855,7 +1855,78 @@ Use the left and right mouse buttons to select and deselect the cells.</string>
            <property name="sizeHint" stdset="0">
             <size>
              <width>20</width>
-             <height>15</height>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <property name="spacing">
+            <number>15</number>
+           </property>
+           <item>
+            <widget class="QPushButton" name="autoFillBlockedCellsButton">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>32</width>
+               <height>32</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>32</width>
+               <height>32</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="icon">
+              <iconset resource="resources.qrc">
+               <normaloff>:/images/autoFill.png</normaloff>:/images/autoFill.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>24</width>
+               <height>24</height>
+              </size>
+             </property>
+             <property name="checkable">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_14">
+             <property name="text">
+              <string>Use this button to quickly fill regions surrounded by blocked cells.</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <spacer name="verticalSpacer_23">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Minimum</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>20</height>
             </size>
            </property>
           </spacer>
@@ -1913,7 +1984,7 @@ A maximum of 10 points can be selected.</string>
            <property name="sizeHint" stdset="0">
             <size>
              <width>20</width>
-             <height>15</height>
+             <height>20</height>
             </size>
            </property>
           </spacer>
@@ -2173,6 +2244,9 @@ A maximum of 10 points can be selected.</string>
               </item>
               <item row="7" column="1">
                <widget class="QLineEdit" name="outputIntervalEdit">
+                <property name="toolTip">
+                 <string>OUt and DAT files will be created at every ...... iterations.</string>
+                </property>
                 <property name="text">
                  <string/>
                 </property>
@@ -2181,22 +2255,29 @@ A maximum of 10 points can be selected.</string>
               <item row="8" column="0">
                <widget class="QLabel" name="label_136">
                 <property name="text">
-                 <string>Ctrl. pt. update </string>
+                 <string>Update interval</string>
                 </property>
                </widget>
               </item>
               <item row="8" column="1">
-               <widget class="QLineEdit" name="controlPointUpdateIntervalEdit"/>
+               <widget class="QLineEdit" name="plotUpdateIntervalEdit">
+                <property name="toolTip">
+                 <string>Convergence and control point plots will be updated at every ...... iterations.</string>
+                </property>
+               </widget>
               </item>
               <item row="9" column="0">
                <widget class="QLabel" name="label_137">
                 <property name="text">
-                 <string>Conv. tol.</string>
+                 <string>Conv. tolerance</string>
                 </property>
                </widget>
               </item>
               <item row="9" column="1">
                <widget class="QLineEdit" name="outerToleranceEdit">
+                <property name="toolTip">
+                 <string>Mass residual will be checked against this value.</string>
+                </property>
                 <property name="text">
                  <string/>
                 </property>
@@ -6044,7 +6125,7 @@ p, li { white-space: pre-wrap; }
                  </font>
                 </property>
                 <property name="text">
-                 <string>1000</string>
+                 <string>500</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -8217,7 +8298,7 @@ p, li { white-space: pre-wrap; }
                  </font>
                 </property>
                 <property name="text">
-                 <string>1000</string>
+                 <string>500</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -8821,7 +8902,7 @@ p, li { white-space: pre-wrap; }
   <tabstop>pRelaxationEdit</tabstop>
   <tabstop>maxOuterIterEdit</tabstop>
   <tabstop>outputIntervalEdit</tabstop>
-  <tabstop>controlPointUpdateIntervalEdit</tabstop>
+  <tabstop>plotUpdateIntervalEdit</tabstop>
   <tabstop>outerToleranceEdit</tabstop>
   <tabstop>DATfileCheck</tabstop>
   <tabstop>startButton</tabstop>

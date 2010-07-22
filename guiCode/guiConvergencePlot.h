@@ -36,6 +36,7 @@ class ConvergencePlot : public QWidget
       void increaseMinY();
       void decreaseMaxY();
       void increaseMaxY();
+      void autoAdjustXaxis(int iter);
 
    protected:
       void paintEvent(QPaintEvent *event);
@@ -43,7 +44,6 @@ class ConvergencePlot : public QWidget
 
    private:
       void drawLabels(QPainter &painter);
-      void formTicksAndGridsPath();
 
       QPainterPath emptyPath;             // Empty path
       QPainterPath convergencePaths[4];   // Paths for u, v, p & mass convergence

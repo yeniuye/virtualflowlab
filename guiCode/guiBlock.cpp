@@ -77,10 +77,10 @@ int Block::addRemoveControlPoint(int c)
 
 
 
-void Block::addBlockedCell(int bc)
+void Block::addBlockedCell(int cell)
 {
-   if (isCellBlocked[bc] == 0) {
-      isCellBlocked[bc] = 1;     // If the cell is not already blocked, mark it as blocked
+   if (isCellBlocked[cell] == 0) {
+      isCellBlocked[cell] = 1;     // If the cell is not already blocked, mark it as blocked
       nBlockedCells = nBlockedCells + 1;
    }
 }
@@ -89,14 +89,76 @@ void Block::addBlockedCell(int bc)
 
 
 
-void Block::removeBlockedCell(int bc)
+void Block::removeBlockedCell(int cell)
 {
-   if (isCellBlocked[bc] == 1) {
-      isCellBlocked[bc] = 0;  // If the cell is already blocked, mark it as not blocked
+   if (isCellBlocked[cell] == 1) {
+      isCellBlocked[cell] = 0;  // If the cell is already blocked, mark it as not blocked
       nBlockedCells = nBlockedCells - 1;
    }
 }
 
+
+
+
+
+void Block::autoFillBlockedCell(int cell)
+{
+   // Find all the cells that are inside a region surrounded by blocked cells and mark them
+   // as blocked cells.
+
+   // Return immediately if the initially clicked cell is already a blocked cell
+   if (isCellBlocked[cell] == 1) {
+      return;
+   }
+
+   isCellBlocked[cell] = 1;
+   nBlockedCells = nBlockedCells + 1;
+
+   autoFillRecursive(cell);
+}
+
+
+
+
+void Block::autoFillRecursive(int cell)
+{
+   // Recursive function used to mark all the cells that needs to be blcoked during an auto
+   // fill process.
+   
+   int nX = getnXpoints();
+   int nY = getnYpoints();
+
+   // Find neighbors of this cell.
+   // Cuneyt: This neighbor finding process is also performed in streamfunction plotting, but
+   // in a slightly different way. It will be good if this can be put inside a function.
+   int neighbor[4];
+   neighbor[0] = cell + 1;         // Right neighbor
+   neighbor[1] = cell - 1;         // Left neighbor	
+   neighbor[2] = cell + nX - 1;    // Top neighbor
+   neighbor[3] = cell - (nX - 1);  // Bottom neighbor
+
+   // Correct neighbors that should actually fall outside the problem domain
+   if (cell < nX-1) {               // cell is already located at the bottom boundary
+      neighbor[3] = -1;
+   }
+   if (cell > (nX-1)*(nY-1)-nX) {   // cell is already located at the top boundary
+      neighbor[2] = -1;
+   }
+   if (cell % (nX-1) == 0) {        // cell is already located at the left boundary
+      neighbor[1] = -1;
+   }
+   if ((cell+1) % (nX-1) == 0) {    // cell is already located at the right boundary
+      neighbor[0] = -1;
+   }
+
+   for (int i=0; i<4; i++) {
+      if (neighbor[i] != -1 && isCellBlocked[neighbor[i]] == 0) {
+         isCellBlocked[neighbor[i]] = 1;
+         nBlockedCells = nBlockedCells + 1;
+         autoFillRecursive(neighbor[i]);
+      }
+   }
+}  // End of function autoFillRecursive()
 
 
 

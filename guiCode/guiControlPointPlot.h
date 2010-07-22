@@ -20,7 +20,6 @@ class ControlPointPlot : public QWidget
       double defaultMinX, defaultMaxX, defaultMinY, defaultMaxY;   // Default values used at program startup or at the start of a new problem.
       double minValues[MAX_CONTROL_POINTS][3];   // Minimum of u, v and p values that are shown on the plot
       double maxValues[MAX_CONTROL_POINTS][3];   // Maximum of u, v and p values that are shown on the plot
-      bool showU, showV, showP;
 
    signals:
       void setAxesLabels(double, double, double, double);
@@ -39,7 +38,7 @@ class ControlPointPlot : public QWidget
       void decreaseMaxY();
       void increaseMaxY();
       void controlPointSpinBoxChanged(int);
-      //void autoAdjustXaxis();
+      void autoAdjustXaxis(int iter);
       void autoAdjustYaxis();
 
     protected:
@@ -48,7 +47,6 @@ class ControlPointPlot : public QWidget
 
     private:
       void drawLabels(QPainter &painter);
-      void formTicksAndGridsPath();
 
       QPainterPath emptyPath;      // Empty path
       QPainterPath controlPointPaths[MAX_CONTROL_POINTS][3];	// Paths for u, v, p control points

@@ -8,7 +8,7 @@ typedef enum {NONE, EXP, SINH, TANH} clusterTypes;
 
 
 // Different states of the problem solution and GUI
-typedef enum {GEOM, BLOCK, MESH, BCIC, PARAMETERS, BLOCKEDCELLS, CONTROLPOINTS, VISUALIZE} mainStates;
+typedef enum {GEOM, BLOCK, MESH, BCIC, PARAMETERS, BLOCKEDCELLS, BLOCKEDCELLSAUTOFILL, CONTROLPOINTS, VISUALIZE} mainStates;
 typedef enum {SELECT, ADDSTREAMLINE, PROBE, DATAEXTRACT} visualizeStates;
 typedef enum {SELECTION, ZOOM} glMouseStates;  // Used by the openGL widget
 //typedef enum {NOTHING, PRIMITIVESADDED, BLOCKFACESET, MESHGENERATED, SOLNSTARTED, SOLNPAUSED, SOLNFINISHED, POSTPROCESSDONE} whatsDoneState;

@@ -5,6 +5,8 @@ TODO LIST (In Turkish)
 - 20-7-2010 "Contour plot level" kutucugunun validator'u 1-500 araligina izin verdigi halde ilk rakam olarak sifir yazilmasina da izin veriyor.
   Boyle olunca da contour cizilmek istenince program cokuyor.
 
+  Yukaridakinin benzeri plotUpdateIntervalEdit kutucu icin de gecerli Onun da sifiri kabul etmemesi gerek.
+
 - 19-7-2010 Giris-Cikis seklinde bir akis cozulurken cikista basinc sabitlenmedigi icin basinc surekli dusuyor. Basinc ve kutle residual'lari
   bir degerde sabitleniyor, dusmuyor.
 
